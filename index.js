@@ -1,0 +1,13 @@
+/*
+ * Licensed Materials - Property of IBM
+ * (C) Copyright IBM Corp. 2016. All Rights Reserved.
+ * US Government Users Restricted Rights - Use, duplication or
+ * disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+ */
+'use strict';
+
+module.exports.nlcconfig = require('./src/lib/nlcconfig');
+module.exports.nlcManager = require('./src/lib/nlcManager');
+module.exports.paramManager = require('./src/lib/paramManager');
+module.exports.hubotPouch = require('./src/lib/hubotPouch');
+module.exports.nlcDb = require('./src/lib/nlcDb');

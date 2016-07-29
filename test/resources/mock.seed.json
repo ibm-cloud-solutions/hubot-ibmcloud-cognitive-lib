@@ -1,0 +1,141 @@
+{
+	"name": "test",
+	"version": "0.0.1",
+	"classes": [{
+		"class": "app.list",
+		"emittarget": "app.list.js",
+		"texts": [
+			"Show my apps",
+			"Show me my applications.",
+			"List applications"
+		]
+	}, {
+		"class": "app.start",
+		"emittarget": "app.start.js",
+		"texts": [
+			"Start application demo123",
+			"Start app myAppXYZ",
+			"I want to start app xyz."
+		],
+		"parameters": [{
+			"name": "appname",
+			"type": "entity",
+			"prompt": "Enter application name"
+		}]
+	}, {
+		"class": "app.test.1",
+		"emittarget": "test.1.js",
+		"texts": [
+			"Show me my problematic applications",
+			"Display problematic apps",
+			"What applications had the most problems"
+		],
+		"parameters": [{
+			"name": "timeframe",
+			"type": "keyword",
+			"prompt": "Enter desired timeframe (today | this week)",
+			"values": ["today", "this week"]
+		}]
+	}, {
+		"class": "app.test.2",
+		"emittarget": "test.2.js",
+		"texts": [
+			"Please notify me when the threshold is exceeded",
+			"Alert me when the application exeeds percent",
+			"Set my threshold to percent"
+		],
+		"parameters": [{
+			"name": "alerttype",
+			"type": "keyword",
+			"prompt": "Enter threshold type (cpu | memory | disk | events | all)"
+		}, {
+			"name": "threshold",
+			"type": "number",
+			"prompt": "Enter threshold percentage"
+		}]
+	}, {
+		"class": "app.test.3",
+		"emittarget": "test.3.js",
+		"texts": [
+			"Scale app to 3 instances",
+			"Scale my application",
+			"Set number of instances for my application"
+		],
+		"parameters": [{
+			"name": "appname",
+			"type": "entity",
+			"prompt": "Enter application name"
+		}, {
+			"name": "instances",
+			"type": "number",
+			"prompt": "Enter number of desired instances"
+		}]
+	}, {
+		"class": "app.test.4",
+		"emittarget": "test.4.js",
+		"texts": [
+			"Deploy application to github",
+			"I want to deploy my app",
+			"Deploy application from github repo"
+		],
+		"parameters": [{
+			"name": "appname",
+			"type": "entity",
+			"prompt": "Enter application name"
+		}, {
+			"name": "reponame",
+			"type": "repourl",
+			"prompt": "Enter repository url"
+		}]
+	}, {
+		"class": "app.test.5",
+		"emittarget": "test.5.js",
+		"texts": [
+			"Invoke openwhisk action",
+			"I want to run action on openwhisk",
+			"Launch openwhisk action"
+		],
+		"parameters": [{
+			"name": "actionname",
+			"type": "keyword",
+			"prompt": "Enter desired action (jump | run | drop | kick)",
+			"values": ["jump", "run", "drop", "kick"]
+		}]
+	}, {
+		"class": "app.test.6",
+		"emittarget": "test.6.js",
+		"texts": [
+			"Create an issue against repo when application crashes",
+			"When application crashes, open an issue",
+			"Open issue in repo on app crash"
+		],
+		"parameters": [{
+			"name": "username",
+			"type": "repouser",
+			"prompt": "Enter username"
+		}, {
+			"name": "reponame",
+			"type": "reponame",
+			"prompt": "Enter repository name"
+		}]
+	}, {
+		"class": "app.test.7",
+		"emittarget": "test.7.js",
+		"texts": [
+        	"What is the weather",
+        	"Can you tell me how the weather is"
+		],
+		"parameters": [{
+			"name": "city",
+			"type": "city",
+			"prompt": "Enter location for which you want the weather"
+		}]
+	}],
+	"parameter.values": [{
+		"name": "alerttype",
+		"values": ["cpu", "memory", "disk", "events", "all"]
+	}, {
+		"name": "appname",
+		"values": []
+	}]
+}

@@ -1,0 +1,53 @@
+{
+  "name": "hubot-ibmcloud-cognitive-lib",
+  "version": "0.0.26",
+  "description": "hubot-ibmcloud-cognitive-lib provides cognitive libraries to be assist Hubot scripts.",
+  "main": "index.js",
+  "respository": {
+    "url": "https://github.com/ibm-cloud-solutions/hubot-ibmcloud-cognitive-lib",
+    "type": "git"
+  },
+  "bin": {
+    "initDb": "src/lib/initDb.js"
+  },
+  "scripts": {
+    "lint": "eslint src/**/*.js index.js test/*.js",
+    "test": ". test/.env && mocha test",
+    "coverage": ". test/.env && istanbul cover -x '**/coverage/**' -x '**/tools/**' --include-all-sources --report lcov --report cobertura --report text --dir ./gh-pages/coverage _mocha -- test"
+  },
+  "keywords": [
+    "cognitive",
+    "nlc"
+  ],
+  "author": "ibm-cloud-solutions",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "eslint": "^2.9.0",
+    "eslint-config-strongloop": "^2.0.1",
+    "istanbul": "0.4.0",
+    "istanbul-cobertura-badger": "1.2.1",
+    "mocha": "^2.4.5",
+    "mocha-sprinkles": "^2.2.1",
+    "nock": "^8.0.0",
+    "publish-please": "^2.1.4",
+    "rewire": "2.5.1",
+    "shelljs": "^0.7.0"
+  },
+  "engines": {
+    "node": ">= 4.2.0"
+  },
+  "files": [
+    "src",
+    "index.js"
+  ],
+  "dependencies": {
+    "csv-stringify": "^1.0.4",
+    "lodash": "^4.13.1",
+    "pos": "^0.3.0",
+    "pouchdb": "^5.4.5",
+    "pouchdb-memory": "^1.1.0",
+    "string-length": "^1.0.1",
+    "watson-developer-cloud": "^1.9.4"
+  }
+}

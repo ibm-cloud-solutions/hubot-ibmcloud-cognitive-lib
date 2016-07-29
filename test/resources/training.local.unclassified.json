@@ -1,0 +1,53 @@
+{
+  "_id": "unclassified",
+  "classification": {
+    "classifier_id": "test_classificer",
+    "url": "https://some_url",
+    "text": "I would like to train the bot",
+    "top_class": "nlc.learn.js",
+    "classes": [
+      {
+        "class_name": "nlc.learn.js",
+        "confidence": 0.4870096999078649
+      },
+      {
+        "class_name": "nlc.train.js",
+        "confidence": 0.1942440423565999
+      },
+      {
+        "class_name": "weather.js",
+        "confidence": 0.077474325456291
+      },
+      {
+        "class_name": "nlc.learn.detected.js",
+        "confidence": 0.035268455548129796
+      },
+      {
+        "class_name": "app.logs.js",
+        "confidence": 0.02165544469289643
+      },
+      {
+        "class_name": "container.logs.js",
+        "confidence": 0.017411953564617926
+      },
+      {
+        "class_name": "app.start.js",
+        "confidence": 0.01708334098125717
+      },
+      {
+        "class_name": "weather.alerts.js",
+        "confidence": 0.015661422036579598
+      },
+      {
+        "class_name": "container.help.js",
+        "confidence": 0.01399337397681386
+      },
+      {
+        "class_name": "app.restage.js",
+        "confidence": 0.012990353667414994
+      }
+    ]
+  },
+  "type": "unclassified",
+  "ts": 1467726946907
+}
