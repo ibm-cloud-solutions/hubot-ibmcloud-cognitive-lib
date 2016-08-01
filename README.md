@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/ibm-cloud-solutions/hubot-ibmcloud-cognitive-lib.svg?branch=master)](https://travis-ci.org/ibm-cloud-solutions/hubot-ibmcloud-cognitive-lib)
+[![Coverage Status](https://coveralls.io/repos/github/ibm-cloud-solutions/hubot-ibmcloud-cognitive-lib/badge.svg?branch=cleanup)](https://coveralls.io/github/ibm-cloud-solutions/hubot-ibmcloud-cognitive-lib?branch=cleanup)
+[![Dependency Status](https://dependencyci.com/github/ibm-cloud-solutions/hubot-ibmcloud-cognitive-lib/badge)](https://dependencyci.com/github/ibm-cloud-solutions/hubot-ibmcloud-cognitive-lib)
+[![npm](https://img.shields.io/npm/v/hubot-ibmcloud-cognitive-lib.svg?maxAge=2592000)](https://www.npmjs.com/package/hubot-ibmcloud-cognitive-lib)
 
 # hubot-ibmcloud-cognitive-lib
 
@@ -13,7 +17,7 @@ These functions can be incorporated into a server to process statements to deter
  * [License](#license)		
  * [Contribute](#contribute)
 
-## Installation <a id="installation"></a>
+## Installation
 
 In your npm project:
 
@@ -25,7 +29,7 @@ or add the following line to your package.json's dependencies:
 
 `"hubot-ibmcloud-cognitive-lib": "*"`
 
-## Overview <a id="overview"></a>
+## Overview
 
 In general, Watson's Natural Language Classifier maps a statement to a class that best matches it.  The classifier is seeded with classes and various statements that can be associated with each class.
 
@@ -33,7 +37,7 @@ For the NLC support, a class will represent a command (such as `weather`).  That
 
 Once the class has been determined, the parameter values needed by that class are pulled from the statement.  For instance if the statement is `I want the weather for Chicago` then the location (Chicago) is pulled from the statement.
 
-## NLC JSON Configuration File <a id="nlc-json-configuration-file"></a>
+## NLC JSON Configuration File
 
 ### Introduction
 
@@ -178,7 +182,7 @@ Following is a description of the various functions exposed by this package:
 These are functions used to control the underlying database directly.
 
 1. `nlcDb.open()`
-	- Opens the underlying database for use by the various functions. 
+	- Opens the underlying database for use by the various functions.
 
 ### NLC / Parameter Definition related functions (nlcconfig)
 
@@ -212,15 +216,15 @@ These are functions used to process a statement against the current NLC classifi
 
 ### Parameter Processing related functions (ParamManager)
 
-These are functions used to pull parameter values from a statement using the parameter defition.
+These are functions used to pull parameter values from a statement using the parameter definition.
 
 1. `ParamManager.getParameters(className, statement, classParameters)`
 	- Process the given statement using the given class parameter definitions to obtain parameter values.  A map object is returned with parameter-name / parameter-value pairs.  If the parameter value could not be found, the parameter-name is not in the map.
 
-## License <a id="license"></a>
+## License
 
-See [LICENSE.txt](./LICENSE.txt) for license information.
+See [LICENSE.txt](https://github.com/ibm-cloud-solutions/hubot-ibmcloud-cognitive-lib/blob/master/LICENSE.txt) for license information.
 
-## Contribute <a id="contribute"></a>
+## Contribute
 
-Please check out our [Contribution Guidelines](./CONTRIBUTING.md) for detailed information on how you can lend a hand.
+Please check out our [Contribution Guidelines](https://github.com/ibm-cloud-solutions/hubot-ibmcloud-cognitive-lib/blob/master/CONTRIBUTING.md) for detailed information on how you can lend a hand.
