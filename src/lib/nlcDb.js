@@ -55,7 +55,7 @@ const pouch = new Promise((resolve, reject) => {
 
 		return db.get('_design/classes').then(() => {
 			// sync if enabled
-			if (env.cloudantDb)
+			if (env.cloudantDb !== undefined)
 				setTimeout(syncFn, env.syncInterval);
 			resolve(this);
 		}).catch(() => {
