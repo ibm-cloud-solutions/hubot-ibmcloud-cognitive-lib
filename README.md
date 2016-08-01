@@ -1,6 +1,8 @@
 [![Build Status](https://travis-ci.org/ibm-cloud-solutions/hubot-ibmcloud-cognitive-lib.svg?branch=master)](https://travis-ci.org/ibm-cloud-solutions/hubot-ibmcloud-cognitive-lib)
+[![Coverage Status](https://coveralls.io/repos/github/ibm-cloud-solutions/hubot-ibmcloud-cognitive-lib/badge.svg?branch=cleanup)](https://coveralls.io/github/ibm-cloud-solutions/hubot-ibmcloud-cognitive-lib?branch=cleanup)
 [![Dependency Status](https://dependencyci.com/github/ibm-cloud-solutions/hubot-ibmcloud-cognitive-lib/badge)](https://dependencyci.com/github/ibm-cloud-solutions/hubot-ibmcloud-cognitive-lib)
 [![npm](https://img.shields.io/npm/v/hubot-ibmcloud-cognitive-lib.svg?maxAge=2592000)](https://www.npmjs.com/package/hubot-ibmcloud-cognitive-lib)
+
 # hubot-ibmcloud-cognitive-lib
 
 Helper functions for configuring, storing, and processing information related to Natural Language processing of a statment and the retrieval of variable data from that statement.
