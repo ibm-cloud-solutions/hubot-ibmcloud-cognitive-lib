@@ -5,7 +5,7 @@
 
 # hubot-ibmcloud-cognitive-lib
 
-Helper functions for configuring, storing, and processing information related to Natural Language processing of a statment and the retrieval of variable data from that statement.
+Provides helper functions for configuring, storing, and processing information related to Natural Language processing of a statment and the retrieval of variable data from that statement.
 
 These functions can be incorporated into a server to process statements to determine a class to handle the statement and the parameters to pass to the function used to handle statements for that class.
 
