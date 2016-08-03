@@ -16,6 +16,7 @@ const pjson = require(path.resolve(process.cwd(), 'package.json'));
 const classesDesignDoc = '_design/classes';
 const classesView = 'classes/byClass';
 const targetView = 'classes/byTarget';
+const descriptionView = 'classes/byDescription';
 
 
 const pouch = new Promise((resolve, reject) => {
@@ -68,6 +69,9 @@ const pouch = new Promise((resolve, reject) => {
 					},
 					byTarget: {
 						map: 'function(doc){ if (doc.emittarget){ emit(doc._id, [doc.emittarget, doc.parameters]); }}'
+					},
+					byDescription: {
+						map: 'function(doc){ if (doc.description){ emit(doc._id, doc.description); } else { emit(doc._id, doc._id); } }'
 					}
 				}
 			};
@@ -91,6 +95,25 @@ const pouch = new Promise((resolve, reject) => {
 module.exports.open = function() {
 	return pouch;
 };
+
+
+/**
+ * Retrieves descriptions for the given classification names.
+ *
+ * @param  string|[string]	className	A string or an array of string with the classification names to get descriptions.
+ * @return {"className":"description"}	Key-value object where the keys are the classification name and values are the descriptions.
+ */
+module.exports.getClassDescriptions = function(className){
+	let query = (typeof className === 'string') ? {key: className} : {keys: className};
+	return this.db.query(descriptionView, query).then((descriptions) => {
+		let result = {};
+		descriptions.rows.map((item) => {
+			result[item.id] = item.value;
+		});
+		return result;
+	});
+};
+
 
 module.exports.getClassEmitTarget = function(className){
 	return this.db.query(targetView, {

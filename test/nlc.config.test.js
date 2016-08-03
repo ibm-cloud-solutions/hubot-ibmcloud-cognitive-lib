@@ -12,6 +12,7 @@ const db = require('./setupTestDb');
 
 const clz = 'test.class';
 const emittarget = 'test.class.js';
+const descriptionText = 'Sample description text';
 
 describe('Testing NLC Configuration', function() {
 
@@ -51,6 +52,18 @@ describe('Testing NLC Configuration', function() {
 		it('Verify getClassEmitTarget for invalid class', function() {
 			return nlcconfig.getClassEmitTarget('invalidclass').then(function(tgt) {
 				expect(tgt).to.be.null;
+			});
+		});
+
+		it('Verify getClassDescriptions with string', function() {
+			return nlcconfig.getClassDescriptions(clz).then(function(descriptions) {
+				expect(descriptions[clz]).to.eql(descriptionText);
+			});
+		});
+
+		it('Verify getClassDescriptions with a string array', function() {
+			return nlcconfig.getClassDescriptions([clz]).then(function(descriptions) {
+				expect(descriptions[clz]).to.eql(descriptionText);
 			});
 		});
 	});

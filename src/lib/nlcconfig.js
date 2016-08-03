@@ -25,6 +25,17 @@ exports.getClassEmitTarget = function(className) {
 };
 
 /**
+ * Returns descriptions for the given class names.
+ *
+ * @param  string|[string]	className		A string or an array of string with the class names to get descriptions.
+ * @return {"className":"description"}		Key-value object where the keys are the class name and values are the descriptions.
+ */
+exports.getClassDescriptions = function(className) {
+	return nlcDb.getClassDescriptions(className);
+};
+
+
+/**
 * Updates global parameter definitions
 */
 exports.updateGlobalParameterValues = function(name, values){

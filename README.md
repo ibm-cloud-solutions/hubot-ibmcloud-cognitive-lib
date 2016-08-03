@@ -71,13 +71,14 @@ NLC defaults to using `./databases` as the folder for the configuration data and
 
 To create a class with a set of suggested natural language statements, an emit target, and parameter value definitions create a JSON file such as the following sample:
 
-```
+```json
 {
 	"name": "AName",
 	"version": "version",
 	"classes": [
 	    {
 			"class": "some-class",
+			"description": "Optional description for this class",
 			"emittarget": "some-class-targetid",
 			"texts": [
 				"How can you help me?",
@@ -93,9 +94,7 @@ To create a class with a set of suggested natural language statements, an emit t
 					"prompt": "OK. What is the parameter value you want me to use?"
 				}
 			]
-	    },
-		:
-		:
+	    }
 	],
 	"parameter.values": [
 		{
@@ -110,6 +109,8 @@ To create a class with a set of suggested natural language statements, an emit t
 `version` is the version of this file.
 
 `class` is the name of the class you want the classifier to use. Class identifiers should be unique within the file, if the class is not unique then it will be rejected by the database.
+
+`description` is optional. It provides a description for the class. If a value is not provided it will default to the class name.
 
 `texts` is an array of suggested natural language statements to use to invoke the command.  These statements are used to seed the natural language classifier.
 

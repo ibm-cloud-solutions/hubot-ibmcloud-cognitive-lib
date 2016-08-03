@@ -12,12 +12,14 @@ const learned = require('./resources/training.local.learned.json');
 const unclassified = require('./resources/training.local.unclassified.json');
 const clz = 'test.class';
 const emittarget = 'test.class.js';
+const descriptionText = 'Sample description text';
 
 const open = new Promise((resolve, reject) => {
 	return nlcDb.open().then((db) => {
 		return db.put({
 			_id: clz,
 			emittarget: emittarget,
+			description: descriptionText,
 			parameters: [
 				{
 					name: 'actionname1',
