@@ -1,6 +1,6 @@
 {
   "name": "hubot-ibmcloud-cognitive-lib",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "description": "Provides cognitive libraries to assist Hubot developers to interpret natural language.",
   "main": "index.js",
   "respository": {
@@ -18,13 +18,13 @@
   "keywords": [
     "cognitive",
     "nlc",
-	"natural language",
-	"watson natural language classifier",
-	"parameter extraction",
-	"ibm cloud",
-	"hubot",
-	"hubot utilities",
-	"hubot scripts"
+    "natural language",
+    "watson natural language classifier",
+    "parameter extraction",
+    "ibm cloud",
+    "hubot",
+    "hubot utilities",
+    "hubot scripts"
   ],
   "author": "ibm-cloud-solutions",
   "license": "Apache-2.0",
