@@ -16,7 +16,6 @@ const pjson = require(path.resolve(process.cwd(), 'package.json'));
 const classesDesignDoc = '_design/classes';
 const classesView = 'classes/byClass';
 const targetView = 'classes/byTarget';
-const descriptionView = 'classes/byDescription';
 
 
 const pouch = new Promise((resolve, reject) => {
@@ -68,10 +67,7 @@ const pouch = new Promise((resolve, reject) => {
 						map: 'function(doc) { if (doc.selectedClass && doc.approved){ emit(doc.selectedClass); } if (doc.class && doc.text){ emit(doc.class); }}'
 					},
 					byTarget: {
-						map: 'function(doc){ if (doc.emittarget){ emit(doc._id, [doc.emittarget, doc.parameters]); }}'
-					},
-					byDescription: {
-						map: 'function(doc){ if (doc.description){ emit(doc._id, doc.description); } else { emit(doc._id, doc._id); } }'
+						map: 'function(doc){ if (doc.emittarget) { if(doc.description){ emit(doc._id, [doc.emittarget, doc.parameters, doc.description]); } else{ emit(doc._id, [doc.emittarget, doc.parameters, doc._id]); }}}'
 					}
 				}
 			};
@@ -105,10 +101,10 @@ module.exports.open = function() {
  */
 module.exports.getClassDescriptions = function(className){
 	let query = (typeof className === 'string') ? {key: className} : {keys: className};
-	return this.db.query(descriptionView, query).then((descriptions) => {
+	return this.db.query(targetView, query).then((descriptions) => {
 		let result = {};
 		descriptions.rows.map((item) => {
-			result[item.id] = item.value;
+			result[item.id] = item.value[2];
 		});
 		return result;
 	});
