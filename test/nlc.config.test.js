@@ -55,17 +55,12 @@ describe('Testing NLC Configuration', function() {
 			});
 		});
 
-		it('Verify getClassDescriptions with string', function() {
-			return nlcconfig.getClassDescriptions(clz).then(function(descriptions) {
-				expect(descriptions[clz]).to.eql(descriptionText);
+		it('Verify getClassEmitTarget contains class description', function() {
+			return nlcconfig.getClassEmitTarget(clz).then(function(tgt) {
+				expect(tgt.description).to.eql(descriptionText);
 			});
 		});
 
-		it('Verify getClassDescriptions with a string array', function() {
-			return nlcconfig.getClassDescriptions([clz]).then(function(descriptions) {
-				expect(descriptions[clz]).to.eql(descriptionText);
-			});
-		});
 	});
 
 });

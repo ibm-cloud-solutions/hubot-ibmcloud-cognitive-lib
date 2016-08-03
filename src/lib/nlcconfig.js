@@ -18,22 +18,14 @@ exports.getAllClasses = function() {
 };
 
 /**
- * Return emit target associated with a specific class name.
+ * Return configuration associated with a specific class name.
+ *
+ * @param  string 	className 	Name of the NLC classification.
+ * @return {}           		Return object contains the following keys. {class, description, target, parameters }
  */
 exports.getClassEmitTarget = function(className) {
 	return nlcDb.getClassEmitTarget(className);
 };
-
-/**
- * Returns descriptions for the given class names.
- *
- * @param  string|[string]	className		A string or an array of string with the class names to get descriptions.
- * @return {"className":"description"}		Key-value object where the keys are the class name and values are the descriptions.
- */
-exports.getClassDescriptions = function(className) {
-	return nlcDb.getClassDescriptions(className);
-};
-
 
 /**
 * Updates global parameter definitions
