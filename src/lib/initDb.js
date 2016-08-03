@@ -38,6 +38,7 @@ exports.init = function(nlcFile){
 								let dfnObj = {
 									_id: cls.class,
 									emittarget: cls.emittarget,
+									description: cls.description,
 									storageType: 'private'
 								};
 								for (let txt of cls.texts){

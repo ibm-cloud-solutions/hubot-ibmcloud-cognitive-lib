@@ -67,7 +67,7 @@ const pouch = new Promise((resolve, reject) => {
 						map: 'function(doc) { if (doc.selectedClass && doc.approved){ emit(doc.selectedClass); } if (doc.class && doc.text){ emit(doc.class); }}'
 					},
 					byTarget: {
-						map: 'function(doc){ if (doc.emittarget){ emit(doc._id, [doc.emittarget, doc.parameters]); }}'
+						map: 'function(doc){ if (doc.emittarget) { if(doc.description){ emit(doc._id, [doc.emittarget, doc.parameters, doc.description]); } else{ emit(doc._id, [doc.emittarget, doc.parameters]); }}}'
 					}
 				}
 			};
@@ -92,6 +92,13 @@ module.exports.open = function() {
 	return pouch;
 };
 
+
+/**
+ * Return configuration associated with a specific class name.
+ *
+ * @param  string className 	Name of the NLC classification.
+ * @return {}           		Return object contains the following keys. {class, description, target, parameters}
+ */
 module.exports.getClassEmitTarget = function(className){
 	return this.db.query(targetView, {
 		key: className
@@ -99,6 +106,7 @@ module.exports.getClassEmitTarget = function(className){
 		if (result.rows.length > 0){
 			let resp = {
 				class: result.rows[0].id,
+				description: result.rows[0].value.length >= 3 ? result.rows[0].value[2] : result.rows[0].id,
 				target: result.rows[0].value[0],
 				parameters: result.rows[0].value[1]
 			};
