@@ -8,10 +8,11 @@
 
 const env = require('./env');
 const fs = require('fs');
+const path = require('path');
 
 let PouchDB, opts;
 
-const dbDir = env.dbPath + env.dbDirectory;
+const dbDir = path.join(env.dbPath, env.dbDirectory);
 
 if (env.test){
 	PouchDB = require('pouchdb-memory');
@@ -27,7 +28,7 @@ else {
 		fs.mkdirSync(dbDir);
 	}
 	opts = {
-		name: dbDir + '/' + env.cloudantDb
+		name: path.join(dbDir, env.cloudantDb)
 	};
 }
 
