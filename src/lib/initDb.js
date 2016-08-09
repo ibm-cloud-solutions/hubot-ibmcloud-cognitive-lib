@@ -119,7 +119,6 @@ if (!env.test){
 			}
 			else {
 				process.exit(1);
-				throw err;
 			}
 		});
 	}
