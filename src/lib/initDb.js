@@ -114,7 +114,13 @@ if (!env.test){
 			process.exit(0);
 		}).catch((err) => {
 			console.log(err);
-			process.exit(1);
+			if (err.status === 409){
+				console.log('WARNING: database already exists');
+			}
+			else {
+				process.exit(1);
+				throw err;
+			}
 		});
 	}
 	else {
