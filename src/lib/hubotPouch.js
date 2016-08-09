@@ -28,7 +28,7 @@ else {
 		fs.mkdirSync(dbDir);
 	}
 	opts = {
-		name: path.join(dbDir, env.cloudantDb)
+		name: dbDir + '/' + env.cloudantDb
 	};
 }
 
