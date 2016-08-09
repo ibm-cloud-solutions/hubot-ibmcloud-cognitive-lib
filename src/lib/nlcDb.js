@@ -198,6 +198,16 @@ module.exports.put = function(doc){
 	return this.db.put(doc);
 };
 
+const truthy = function(val) {
+	if (val && (val === true || val === 'true' || val === 'TRUE' ||
+		val === 'YES' || val === 'Y' || val === 'y')) {
+		return true;
+	}
+	else {
+		return false;
+	}
+};
+
 module.exports.post = function(classification, type, selectedClass) {
 	return new Promise((resolve, reject) => {
 		let doc = {
@@ -212,8 +222,12 @@ module.exports.post = function(classification, type, selectedClass) {
 			doc.classification = classification;
 		}
 
-		if (selectedClass)
+		if (selectedClass) {
 			doc.selectedClass = selectedClass;
+			if (truthy(process.env.HUBOT_WATSON_NLC_AUTO_APPROVE)) {
+				doc.approved = true;
+			}
+		}
 
 		// add confidence thresholds and bot version
 		doc.lowConfidenceThreshold = env.lowThreshold;
