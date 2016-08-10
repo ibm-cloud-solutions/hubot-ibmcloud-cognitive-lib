@@ -215,7 +215,9 @@ module.exports.post = function(classification, type, selectedClass) {
 		if (selectedClass) {
 			doc.selectedClass = selectedClass;
 			if (env.truthy(env.nlc_autoApprove)) {
-				doc.approved = Date.now();
+				doc.approved = true;
+				doc.approved_timestamp = Date.now();
+				doc.approved_method = 'auto';
 			}
 		}
 
