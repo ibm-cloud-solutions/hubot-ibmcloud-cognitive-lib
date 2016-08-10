@@ -75,6 +75,8 @@ const open = new Promise((resolve, reject) => {
 				_id: 'approved',
 				selectedClass: 'approved',
 				approved: true,
+				approved_timestamp: Date.now(),
+				approved_method: 'manual',
 				text: 'should see this'
 			});
 		}).then(() => {

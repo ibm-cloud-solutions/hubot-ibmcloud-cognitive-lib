@@ -212,8 +212,14 @@ module.exports.post = function(classification, type, selectedClass) {
 			doc.classification = classification;
 		}
 
-		if (selectedClass)
+		if (selectedClass) {
 			doc.selectedClass = selectedClass;
+			if (env.truthy(env.nlc_autoApprove)) {
+				doc.approved = true;
+				doc.approved_timestamp = Date.now();
+				doc.approved_method = 'auto';
+			}
+		}
 
 		// add confidence thresholds and bot version
 		doc.lowConfidenceThreshold = env.lowThreshold;

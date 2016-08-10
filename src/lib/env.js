@@ -11,6 +11,7 @@ const settings = {
 	nlc_username: process.env.HUBOT_WATSON_NLC_USERNAME,
 	nlc_password: process.env.HUBOT_WATSON_NLC_PASSWORD,
 	nlc_classifier: process.env.HUBOT_WATSON_NLC_CLASSIFIER || 'default-hubot-classifier',
+	nlc_autoApprove: process.env.HUBOT_WATSON_NLC_AUTO_APPROVE || false,
 	alchemy_url: process.env.HUBOT_WATSON_ALCHEMY_URL,
 	alchemy_apikey: process.env.HUBOT_WATSON_ALCHEMY_APIKEY,
 	alchemy_dataset: process.env.HUBOT_WATSON_ALCHEMY_DATASET,
@@ -61,3 +62,14 @@ settings.lowThreshold = parseFloat(settings.lowThreshold);
 settings.highThreshold = parseFloat(settings.highThreshold);
 
 module.exports = settings;
+
+
+module.exports.truthy = function(val) {
+	if (val && (val === true || val === 'true' || val === 'TRUE' ||
+		val === 'YES' || val === 'Y' || val === 'y')) {
+		return true;
+	}
+	else {
+		return false;
+	}
+};

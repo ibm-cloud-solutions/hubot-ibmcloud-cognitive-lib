@@ -50,6 +50,7 @@ HUBOT_WATSON_NLC_URL
 HUBOT_WATSON_NLC_USERNAME
 HUBOT_WATSON_NLC_PASSWORD
 HUBOT_WATSON_NLC_CLASSIFIER (optional, defaults to default-hubot-classifier)
+HUBOT_WATSON_NLC_AUTO_APPROVE (optional, defaults to false)
 HUBOT_WATSON_ALCHEMY_URL (optional, required to pull city parameter values from statement)
 HUBOT_WATSON_ALCHEMY_APIKEY (optional, required to pull city parameter values from statement)
 HUBOT_WATSON_ALCHEMY_DATASET (optional, required to pull city parameter values from statement)
@@ -64,6 +65,7 @@ CONFIDENCE_THRESHOLD_LOW (defaults to 0.3)
 PARAM_PARSING_DISABLED (defaults to false, but should be set to true if parameter processing is not desired)
 HUBOT_DB_TEST (defaults to false, but should be set to null if running in same shell as the tests which overrides this setting)
 ```
+__Note:__ Usage of `HUBOT_WATSON_NLC_AUTO_APPROVE` could have potential negative effects. Auto-approving the classified statements if they include keywords/entities could cause incorrect classifications for other command usages in the future.
 
 ### Training data and class definition setup.
 
