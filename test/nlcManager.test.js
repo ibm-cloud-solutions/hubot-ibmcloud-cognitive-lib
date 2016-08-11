@@ -52,6 +52,13 @@ describe('Test the NLCManager library', function(){
 		});
 	});
 
+	it('should successfully get the status of most recent classifier', function(done){
+		watson_nlc.classifierStatus().then(function(result){
+			expect(result.status).to.be.equal('Available');
+			done();
+		});
+	});
+
 	describe('Negative tests', function(){
 		it('should fail getting the status of classifier', function(done){
 			watson_nlc.classifierStatus('classifier-id-0000').catch(function(error){

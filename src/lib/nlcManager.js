@@ -271,7 +271,7 @@ NLCManager.prototype._deleteOldClassifiers = function(){
  *
  * @return Promise When resolved it returns a JSON object with the classifier information.
  */
-NLCManager.prototype._getClassifier = function(){
+NLCManager.prototype._getClassifier = function(doNotTrain){
 	var dfd = Promise.defer();
 
 	if (this.classifier_cache){
@@ -288,12 +288,17 @@ NLCManager.prototype._getClassifier = function(){
 				});
 
 				if (filteredClassifiers.length < 1){
-					// no classifiers found by this name, so create one and start training.
-					this._startTraining().then((result) => {
-						dfd.resolve(result);
-					}).catch((err) => {
-						dfd.reject(err);
-					});
+					if (doNotTrain) {
+						dfd.reject('No classifier found by this name.');
+					}
+					else {
+						// no classifiers found by this name, so create one and start training.
+						this._startTraining().then((result) => {
+							dfd.resolve(result);
+						}).catch((err) => {
+							dfd.reject(err);
+						});
+					}
 				}
 				else {
 					// try to find the most recent available.  or most recent that started training.
@@ -326,12 +331,17 @@ NLCManager.prototype._getClassifier = function(){
 							dfd.resolve(this.classifierTraining);
 						}
 						else {
-							// none are available or training, start training one.
-							this._startTraining().then((result) => {
-								dfd.resolve(result);
-							}).catch((err) => {
-								dfd.reject(err);
-							});
+							if (doNotTrain) {
+								dfd.reject('No classifiers available.');
+							}
+							else {
+								// none are available or training, start training one.
+								this._startTraining().then((result) => {
+									dfd.resolve(result);
+								}).catch((err) => {
+									dfd.reject(err);
+								});
+							}
 						}
 					}).catch((error) => {
 						dfd.reject('Error getting a classifier.' + JSON.stringify(error));
@@ -351,14 +361,23 @@ NLCManager.prototype._getClassifier = function(){
  */
 NLCManager.prototype._getClassifierStatus = function(classifier_id){
 	var dfd = Promise.defer();
-	this.nlc.status({classifier_id: classifier_id}, (err, status) => {
-		if (err){
-			dfd.reject('Error while checking status of classifier ' + classifier_id + JSON.stringify(err, null, 2));
-		}
-		else {
+	if (classifier_id) {
+		this.nlc.status({classifier_id: classifier_id}, (err, status) => {
+			if (err){
+				dfd.reject('Error while checking status of classifier ' + classifier_id + JSON.stringify(err, null, 2));
+			}
+			else {
+				dfd.resolve(status);
+			}
+		});
+	}
+	else {
+		this._getClassifier(true).then(function(status) {
 			dfd.resolve(status);
-		}
-	});
+		}).catch(function(err) {
+			dfd.reject(err);
+		});
+	}
 	return dfd.promise;
 };
 
