@@ -317,7 +317,7 @@ NLCManager.prototype._getClassifier = function(doNotTrain){
 						for (var i = 0; i < sortedClassifiers.length; i++){
 							if (sortedClassifiers[i].name === this.opts.classifierName){
 								if (classifierStatus[i].status === 'Available'){
-									this.classifier_cache = sortedClassifiers[i];
+									this.classifier_cache = classifierStatus[i];
 									dfd.resolve(classifierStatus[i]);
 									return;
 								}
