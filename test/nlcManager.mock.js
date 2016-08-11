@@ -14,6 +14,7 @@ const nlcEndpoint = env.nlc_url;
 const mockClassifyResults = require(path.resolve(__dirname, 'resources', 'mock.classifyResult.json'));
 const mockClassifierStatusAvailableResults = require(path.resolve(__dirname, 'resources', 'mock.classifierStatusAvailable.json'));
 const mockClassifierStatusTrainingResults = require(path.resolve(__dirname, 'resources', 'mock.classifierStatusTraining.json'));
+const mockClassifierStatusUnavailableResults = require(path.resolve(__dirname, 'resources', 'mock.classifierStatusUnavailable.json'));
 
 var classifierList = require(path.resolve(__dirname, 'resources', 'mock.classifierList.json'));
 
@@ -37,6 +38,10 @@ module.exports = {
 		.reply(200, mockClassifierStatusAvailableResults);
 		nlcScope.get('/v1/classifiers/cd02b5x110-nlc-0000')
 		.reply(200, mockClassifierStatusAvailableResults);
+		nlcScope.get('/v1/classifiers/cd02b5x110-nlc-9999')
+		.reply(200, mockClassifierStatusTrainingResults.testClassifier3);
+		nlcScope.get('/v1/classifiers/cd02b5x110-nlc-8888')
+		.reply(200, mockClassifierStatusUnavailableResults);
 
 		// Mock route for classifier error status.
 		nlcScope.get('/v1/classifiers/classifier-id-0000')
@@ -60,6 +65,6 @@ module.exports = {
 
 		// Mock route to create a new classifier.
 		nlcScope.post('/v1/classifiers')
-		.reply(201, mockClassifierStatusTrainingResults);
+		.reply(201, mockClassifierStatusTrainingResults.testClassifier);
 	}
 };

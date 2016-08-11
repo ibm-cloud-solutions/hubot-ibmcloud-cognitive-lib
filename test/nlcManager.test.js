@@ -17,6 +17,9 @@ const db = require('./setupTestDb');
 describe('Test the NLCManager library', function(){
 	var watson_nlc;
 	var watson_nlc_options;
+	var nonExistantClassifier = 'test-classifier2';
+	var trainingClassifier = 'test-classifier3';
+	var unavailableClassifier = 'test-classifier4';
 
 	before(function(){
 		return db.setup;
@@ -52,10 +55,44 @@ describe('Test the NLCManager library', function(){
 		});
 	});
 
+	it('should successfully get the status of most recent available classifier', function(done){
+		watson_nlc.classifierStatus().then(function(result){
+			expect(result.status).to.be.equal('Available');
+			done();
+		});
+	});
+
+	it('should successfullt to get status of most recent training classifier', function(done){
+		watson_nlc.opts.classifierName = trainingClassifier;
+		watson_nlc.nlc._options.classifierName = trainingClassifier;
+		watson_nlc.classifierStatus().then(function(result){
+			expect(result.status).to.be.equal('Training');
+			done();
+		});
+	});
+
 	describe('Negative tests', function(){
 		it('should fail getting the status of classifier', function(done){
 			watson_nlc.classifierStatus('classifier-id-0000').catch(function(error){
 				expect(error).to.be.not.equal(undefined);
+				done();
+			});
+		});
+
+		it('should fail to get status of classifier', function(done){
+			watson_nlc.opts.classifierName = nonExistantClassifier;
+			watson_nlc.nlc._options.classifierName = nonExistantClassifier;
+			watson_nlc.classifierStatus().catch(function(error){
+				expect(error).to.be.equal(`No classifiers found under [${nonExistantClassifier}]`);
+				done();
+			});
+		});
+
+		it('should fail to get an available/training classifier', function(done){
+			watson_nlc.opts.classifierName = unavailableClassifier;
+			watson_nlc.nlc._options.classifierName = unavailableClassifier;
+			watson_nlc.classifierStatus().catch(function(error){
+				expect(error).to.be.equal(`No classifiers available under [${unavailableClassifier}]`);
 				done();
 			});
 		});

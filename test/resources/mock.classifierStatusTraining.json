@@ -1,9 +1,21 @@
 {
-  "classifier_id": "cd02b5x110-nlc-5110",
-  "name": "test-classifier",
-  "language": "en",
-  "created": "2016-06-29T19:09:59.000Z",
-  "url": "https://gateway-s.watsonplatform.net/natural-language-classifier/api/v1/classifiers/cd02b5x110-nlc-5110",
-  "status": "Training",
-  "status_description": "The classifier instance is in its training phase, not yet ready to accept classify requests"
+  "testClassifier":
+  {
+    "classifier_id": "cd02b5x110-nlc-5110",
+    "name": "test-classifier",
+    "language": "en",
+    "created": "2016-06-29T19:09:59.000Z",
+    "url": "https://gateway-s.watsonplatform.net/natural-language-classifier/api/v1/classifiers/cd02b5x110-nlc-5110",
+    "status": "Training",
+    "status_description": "The classifier instance is in its training phase, not yet ready to accept classify requests"
+  },
+  "testClassifier3": {
+    "classifier_id": "cd02b5x110-nlc-9999",
+    "name": "test-classifier3",
+    "language": "en",
+    "created": "2016-06-29T19:09:59.000Z",
+    "url": "https://gateway-s.watsonplatform.net/natural-language-classifier/api/v1/classifiers/cd02b5x110-nlc-9999",
+    "status": "Training",
+    "status_description": "The classifier instance is in its training phase, not yet ready to accept classify requests"
+  }
 }

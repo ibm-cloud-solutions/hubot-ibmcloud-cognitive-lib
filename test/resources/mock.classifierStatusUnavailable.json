@@ -1,0 +1,9 @@
+{
+  "classifier_id": "cd02b5x110-nlc-8888",
+  "name": "test-classifier4",
+  "language": "en",
+  "created": "2016-06-29T19:09:59.000Z",
+  "url": "https://gateway-s.watsonplatform.net/natural-language-classifier/api/v1/classifiers/cd02b5x110-nlc-8888",
+  "status": "Unavailable",
+  "status_description": "The classifier instance is unavailable."
+}
