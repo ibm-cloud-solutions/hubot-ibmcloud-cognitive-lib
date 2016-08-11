@@ -289,7 +289,7 @@ NLCManager.prototype._getClassifier = function(doNotTrain){
 
 				if (filteredClassifiers.length < 1){
 					if (doNotTrain) {
-						dfd.reject('No classifier found by this name.');
+						dfd.reject(`No classifiers found under [${this.opts.classifierName}]`);
 					}
 					else {
 						// no classifiers found by this name, so create one and start training.
@@ -332,7 +332,7 @@ NLCManager.prototype._getClassifier = function(doNotTrain){
 						}
 						else {
 							if (doNotTrain) {
-								dfd.reject('No classifiers available.');
+								dfd.reject(`No classifiers available under [${this.opts.classifierName}]`);
 							}
 							else {
 								// none are available or training, start training one.
