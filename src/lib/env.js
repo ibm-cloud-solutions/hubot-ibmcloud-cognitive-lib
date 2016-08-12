@@ -55,10 +55,10 @@ if (!settings.nlc_classifier) {
 }
 
 if (!settings.alchemy_url) {
-	logger.error('HUBOT_WATSON_ALCHEMY_URL')
+	logger.error('HUBOT_WATSON_ALCHEMY_URL');
 }
 if (!settings.alchemy_apikey) {
-	logger.error('HUBOT_WATSON_ALCHEMY_APIKEY')
+	logger.error('HUBOT_WATSON_ALCHEMY_APIKEY');
 }
 
 
