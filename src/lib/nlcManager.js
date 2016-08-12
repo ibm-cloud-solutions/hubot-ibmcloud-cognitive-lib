@@ -97,7 +97,7 @@ NLCManager.prototype.classifierStatus = function(classifier_id){
 NLCManager.prototype.classify = function(text){
 	var dfd = Promise.defer();
 	this._getClassifier().then((classifier) => {
-		logger.info('Obtained classifier %s', JSON.stringify(classifier));
+		logger.info('Using classifier %s', JSON.stringify(classifier));
 		if (classifier.status === 'Training'){
 			dfd.resolve(classifier);
 		}
@@ -281,6 +281,7 @@ NLCManager.prototype._getClassifier = function(doNotTrain){
 	var dfd = Promise.defer();
 
 	if (this.classifier_cache){
+		logger.debug(`Using cached NLC classifier ${this.classifier_cache.classifier_id}`);
 		dfd.resolve(this.classifier_cache);
 	}
 	else {
@@ -299,6 +300,7 @@ NLCManager.prototype._getClassifier = function(doNotTrain){
 					}
 					else {
 						// no classifiers found by this name, so create one and start training.
+						logger.info(`No classifiers found with name ${this.opts.classifierName}. Creating and training a new one.`);
 						this._startTraining().then((result) => {
 							dfd.resolve(result);
 						}).catch((err) => {
@@ -342,6 +344,7 @@ NLCManager.prototype._getClassifier = function(doNotTrain){
 							}
 							else {
 								// none are available or training, start training one.
+								logger.info(`No classifiers with name ${this.opts.classifierName} are avilable or in training. Start training a new one.`);
 								this._startTraining().then((result) => {
 									dfd.resolve(result);
 								}).catch((err) => {
