@@ -6,66 +6,15 @@
   */
 'use strict';
 
-const LOGLEVEL = {
-	NONE: 0,
-	ERROR: 1,
-	WARNING: 2,
-	INFO: 3,
-	DEBUG: 4
-};
-var robot;
-
-function isLogging(targetlevel) {
-	var loglevel = (process.env.COGNITIVE_LOG_LEVEL && LOGLEVEL[process.env.COGNITIVE_LOG_LEVEL]
-		? LOGLEVEL[process.env.COGNITIVE_LOG_LEVEL]
-		: LOGLEVEL.NONE);
-	return (loglevel >= targetlevel);
-};
-
-module.exports.setRobot = function(bot) {
-	robot = bot;
-};
-
-module.exports.logError = function(logmessage) {
-	if (robot) {
-		robot.log.error(logmessage);
-	}
-	else {
-		if (isLogging(LOGLEVEL.ERROR)) {
-			console.log(`ERROR: ${logmessage}`);
-		}
-	}
-};
-
-module.exports.logWarning = function(logmessage) {
-	if (robot) {
-		robot.log.warning(logmessage);
-	}
-	else {
-		if (isLogging(LOGLEVEL.WARNING)) {
-			console.log(`WARNING: ${logmessage}`);
-		}
-	}
-};
-
-module.exports.logInfo = function(logmessage) {
-	if (robot) {
-		robot.log.info(logmessage);
-	}
-	else {
-		if (isLogging(LOGLEVEL.INFO)) {
-			console.log(`INFO: ${logmessage}`);
-		}
-	}
-};
-
-module.exports.logDebug = function(logmessage) {
-	if (robot) {
-		robot.log.debug(logmessage);
-	}
-	else {
-		if (isLogging(LOGLEVEL.DEBUG)) {
-			console.log(`DEBUG: ${logmessage}`);
-		}
-	}
-};
+const winston = require('winston');
+module.exports = new (winston.Logger)({
+	transports: [
+		new (winston.transports.Console)({
+			level: process.env.COGNITIVE_LOG_LEVEL || 'error',
+			silent: Boolean(process.env.SUPPRESS_ERRORS) || false,
+			prettyPrint: true,
+			colorize: true,
+			timestamp: true
+		})
+	]
+});

@@ -5,6 +5,7 @@
   * disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
   */
 'use strict';
+const logger = require('./logger');
 
 const settings = {
 	nlc_url: process.env.HUBOT_WATSON_NLC_URL,
@@ -27,14 +28,10 @@ const settings = {
 	test: process.env.HUBOT_DB_TEST || false,
 	version: 'v1',
 	suppressErrors: process.env.SUPPRESS_ERRORS || false,
-	paramParsingDisabled: process.env.PARAM_PARSING_DISABLED || false
+	paramParsingDisabled: process.env.PARAM_PARSING_DISABLED || false,
+	logLevel: process.env.COGNITIVE_LOG_LEVEL || 'error'
 };
 
-function logError(msg){
-	if (!settings.suppressErrors){
-		console.log(msg);
-	}
-}
 
 // gracefully output message and exit if any required config is undefined
 if (settings.cloudantEndpoint) {
@@ -43,19 +40,27 @@ if (settings.cloudantEndpoint) {
 }
 
 if (!settings.nlc_url) {
-	logError('HUBOT_WATSON_NLC_URL not set');
+	logger.error('HUBOT_WATSON_NLC_URL not set');
 }
 
 if (!settings.nlc_username) {
-	logError('HUBOT_WATSON_NLC_USERNAME not set');
+	logger.error('HUBOT_WATSON_NLC_USERNAME not set');
 }
 if (!settings.nlc_password) {
-	logError('HUBOT_WATSON_NLC_PASSWORD not set');
+	logger.error('HUBOT_WATSON_NLC_PASSWORD not set');
 }
 
 if (!settings.nlc_classifier) {
-	logError('HUBOT_WATSON_NLC_CLASSIFIER not set');
+	logger.error('HUBOT_WATSON_NLC_CLASSIFIER not set');
 }
+
+if (!settings.alchemy_url) {
+	logger.error('HUBOT_WATSON_ALCHEMY_URL');
+}
+if (!settings.alchemy_apikey) {
+	logger.error('HUBOT_WATSON_ALCHEMY_APIKEY');
+}
+
 
 settings.syncInterval = parseInt(settings.syncInterval, 10);
 settings.lowThreshold = parseFloat(settings.lowThreshold);

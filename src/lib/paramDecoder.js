@@ -131,9 +131,9 @@ ParamDecoder.prototype.getNouns = function() {
 
 		var retNouns = [];
 		self.getNounsToIgnore().then(function(ignore) {
-			logger.logDebug(`ParamDecoder: getNouns(): nounsToIgnore = ${ignore}`);
+			logger.debug(`ParamDecoder: getNouns(): nounsToIgnore = ${ignore}`);
 			self.getTaggedWords().then(function(tw) {
-				logger.logDebug(`ParamDecoder: getNouns(): taggedWords = ${tw}`);
+				logger.debug(`ParamDecoder: getNouns(): taggedWords = ${tw}`);
 				if (tw) {
 					for (var i = 0; i < tw.length; i++) {
 						var twItem = tw[i];
@@ -148,14 +148,14 @@ ParamDecoder.prototype.getNouns = function() {
 						}
 					}
 				}
-				logger.logDebug(`ParamDecoder: getNouns(): retNouns = ${retNouns}`);
+				logger.debug(`ParamDecoder: getNouns(): retNouns = ${retNouns}`);
 				resolve(retNouns);
 			}).catch(function(err) {
-				logger.logError(`ParamDecoder: getNouns(): Error = ${err}.`);
+				logger.eError(`ParamDecoder: getNouns(): Error = ${err}.`);
 				reject(err);
 			});
 		}).catch(function(err) {
-			logger.logError(`ParamDecoder: getNouns(): Error = ${err}.`);
+			logger.error(`ParamDecoder: getNouns(): Error = ${err}.`);
 			reject(err);
 		});
 
@@ -173,7 +173,7 @@ ParamDecoder.prototype.getNumbers = function() {
 
 		var retNumbers = [];
 		self.getTaggedWords().then(function(tw) {
-			logger.logDebug(`ParamDecoder: getNumbers(): taggedWords = ${tw}`);
+			logger.debug(`ParamDecoder: getNumbers(): taggedWords = ${tw}`);
 			if (tw) {
 				for (var i = 0; i < tw.length; i++) {
 					var twItem = tw[i];
@@ -188,10 +188,10 @@ ParamDecoder.prototype.getNumbers = function() {
 					}
 				}
 			}
-			logger.logDebug(`ParamDecoder: getNumbers(): retNouns = ${retNumbers}`);
+			logger.debug(`ParamDecoder: getNumbers(): retNouns = ${retNumbers}`);
 			resolve(retNumbers);
 		}).catch(function(err) {
-			logger.logError(`ParamDecoder: getNumbers(): Error = ${err}.`);
+			logger.error(`ParamDecoder: getNumbers(): Error = ${err}.`);
 			reject(err);
 		});
 
@@ -208,7 +208,7 @@ ParamDecoder.prototype.getCityEntities = function() {
 	return new Promise(function(resolve, reject) {
 
 		self.getEntities().then(function(entities) {
-			logger.logDebug(`ParamDecoder: getCityEntities(): entities = ${JSON.stringify(entities)}`);
+			logger.debug(`ParamDecoder: getCityEntities(): entities = ${JSON.stringify(entities)}`);
 			var cities = [];
 			if (entities.entities) {
 				for (var i = 0; i < entities.entities.length; i++) {
@@ -218,10 +218,10 @@ ParamDecoder.prototype.getCityEntities = function() {
 					}
 				}
 			}
-			logger.logDebug(`ParamDecoder: getCityEntities(): cities = ${cities}`);
+			logger.debug(`ParamDecoder: getCityEntities(): cities = ${cities}`);
 			resolve(cities);
 		}).catch(function(err) {
-			logger.logError(`ParamDecoder: getCityEntities(): Error = ${err}.`);
+			logger.error(`ParamDecoder: getCityEntities(): Error = ${err}.`);
 			reject(err);
 		});
 

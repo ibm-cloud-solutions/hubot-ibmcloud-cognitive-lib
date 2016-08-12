@@ -41,7 +41,7 @@ function processEntity(statement, paramDecoder, entityValues) {
 			for (var i = 0; (i < entityValues.length && !result); i++) {
 				if (findStringInStatement(statement, entityValues[i])) {
 					result = entityValues[i];
-					logger.logDebug(`paramHandlers: processEntity(): Exit: Entity [${result}] found in statement [${statement}].`);
+					logger.debug(`paramHandlers: processEntity(): Exit: Entity [${result}] found in statement [${statement}].`);
 					resolve(result);
 					break;
 				}
@@ -51,14 +51,14 @@ function processEntity(statement, paramDecoder, entityValues) {
 		// Next, obtain nouns from the paramDecoder.
 		// If there is one (and only one) then return it.
 		if (!result) {
-			logger.logDebug(`paramHandlers: processEntity(): Did not find any of the known entities [${entityValues}] in statement [${statement}]`);
+			logger.debug(`paramHandlers: processEntity(): Did not find any of the known entities [${entityValues}] in statement [${statement}]`);
 			paramDecoder.getNouns().then(function(nouns) {
 				if (nouns && nouns.length === 1) {
 					result = nouns[0];
-					logger.logDebug(`paramHandlers: processEntity(): Exit: Entity [${result}] found in statement [${statement}] using parts-of-speech.`);
+					logger.debug(`paramHandlers: processEntity(): Exit: Entity [${result}] found in statement [${statement}] using parts-of-speech.`);
 				}
 				else {
-					logger.logInfo(`paramHandlers: processEntity(): Exit: Entity cannot be pulled from statement [${statement}] using parts-of-speech because there is not just one noun; nouns = [${nouns}].`);
+					logger.info(`paramHandlers: processEntity(): Exit: Entity cannot be pulled from statement [${statement}] using parts-of-speech because there is not just one noun; nouns = [${nouns}].`);
 				}
 				resolve(result);
 			}).catch(function(err) {
@@ -89,14 +89,14 @@ function processKeyword(statement, paramDecoder, entityValues) {
 			for (var i = 0; (i < entityValues.length && !result); i++) {
 				if (findStringInStatement(statement, entityValues[i])) {
 					result = entityValues[i];
-					logger.logDebug(`paramHandlers: processKeyword(): Exit: Keyword [${result}] found in statement [${statement}].`);
+					logger.debug(`paramHandlers: processKeyword(): Exit: Keyword [${result}] found in statement [${statement}].`);
 					break;
 				}
 			}
 		}
 
 		if (!result) {
-			logger.logDebug(`paramHandlers: processKeyword(): Did not find any of the known keywords [${entityValues}] in statement [${statement}]`);
+			logger.debug(`paramHandlers: processKeyword(): Did not find any of the known keywords [${entityValues}] in statement [${statement}]`);
 		}
 
 		resolve(result);
@@ -123,10 +123,10 @@ function processNumber(statement, paramDecoder, entityValues) {
 		paramDecoder.getNumbers().then(function(numbers) {
 			if (numbers && numbers.length === 1) {
 				result = numbers[0];
-				logger.logDebug(`paramHandlers: processNumber(): Exit: Number [${result}] found in statement [${statement}] using parts-of-speech.`);
+				logger.debug(`paramHandlers: processNumber(): Exit: Number [${result}] found in statement [${statement}] using parts-of-speech.`);
 			}
 			else {
-				logger.logInfo(`paramHandlers: processNumber(): Exit: Number cannot be pulled from statement [${statement}] using parts-of-speech because there is not just one number; numbers = [${numbers}].`);
+				logger.info(`paramHandlers: processNumber(): Exit: Number cannot be pulled from statement [${statement}] using parts-of-speech because there is not just one number; numbers = [${numbers}].`);
 			}
 			resolve(result);
 		}).catch(function(err) {
@@ -156,10 +156,10 @@ function processRepoUrl(statement, paramDecoder, entityValues) {
 		var matches = statement.match(REGEX_REPOURL);
 		if (matches && matches.length > 1 && matches[2]) {
 			result = matches[2];
-			logger.logDebug(`paramHandlers: processRepoUrl(): Exit: repoUrl [${result}] found in statement [${statement}] using regex.`);
+			logger.debug(`paramHandlers: processRepoUrl(): Exit: repoUrl [${result}] found in statement [${statement}] using regex.`);
 		}
 		else {
-			logger.logInfo(`paramHandlers: processRepoUrl(): Exit: repoUrl cannot be pulled from statement [${statement}] using regex; matches = [${matches}].`);
+			logger.info(`paramHandlers: processRepoUrl(): Exit: repoUrl cannot be pulled from statement [${statement}] using regex; matches = [${matches}].`);
 		}
 
 		resolve(result);
@@ -187,10 +187,10 @@ function processRepoName(statement, paramDecoder, entityValues) {
 		var matches = statement.match(REGEX_USERREPO);
 		if (matches && matches.length > 2 && matches[3]) {
 			result = matches[3];
-			logger.logDebug(`paramHandlers: processRepoName(): Exit: repoName [${result}] found in statement [${statement}] using regex.`);
+			logger.debug(`paramHandlers: processRepoName(): Exit: repoName [${result}] found in statement [${statement}] using regex.`);
 		}
 		else {
-			logger.logInfo(`paramHandlers: processRepoName(): Exit: repoName cannot be pulled from statement [${statement}] using regex; matches = [${matches}].`);
+			logger.info(`paramHandlers: processRepoName(): Exit: repoName cannot be pulled from statement [${statement}] using regex; matches = [${matches}].`);
 		}
 
 		resolve(result);
@@ -218,10 +218,10 @@ function processRepoUser(statement, paramDecoder, entityValues) {
 		var matches = statement.match(REGEX_USERREPO);
 		if (matches && matches.length > 1 && matches[2]) {
 			result = matches[2];
-			logger.logDebug(`paramHandlers: processRepoUser(): Exit: repoUser [${result}] found in statement [${statement}] using regex.`);
+			logger.debug(`paramHandlers: processRepoUser(): Exit: repoUser [${result}] found in statement [${statement}] using regex.`);
 		}
 		else {
-			logger.logInfo(`paramHandlers: processRepoUser(): Exit: repoUser cannot be pulled from statement [${statement}] using regex; matches = [${matches}].`);
+			logger.info(`paramHandlers: processRepoUser(): Exit: repoUser cannot be pulled from statement [${statement}] using regex; matches = [${matches}].`);
 		}
 
 		resolve(result);
@@ -248,10 +248,10 @@ function processCity(statement, paramDecoder, entityValues) {
 		paramDecoder.getCityEntities().then(function(cities) {
 			if (cities && cities.length === 1) {
 				result = cities[0];
-				logger.logDebug(`paramHandlers: processCity(): Exit: Cith [${result}] found in statement [${statement}] using Watson Alchemy API.`);
+				logger.debug(`paramHandlers: processCity(): Exit: Cith [${result}] found in statement [${statement}] using Watson Alchemy API.`);
 			}
 			else {
-				logger.logInfo(`paramHandlers: processCity(): Exit: City cannot be pulled from statement [${statement}] using Watson Alchemy API because there is not just one city; city = [${cities}].`);
+				logger.info(`paramHandlers: processCity(): Exit: City cannot be pulled from statement [${statement}] using Watson Alchemy API because there is not just one city; city = [${cities}].`);
 			}
 			resolve(result);
 		}).catch(function(err) {

@@ -9,6 +9,7 @@
 const watson = require('watson-developer-cloud');
 const stringify = require('csv-stringify');
 const nlcDb = require('./nlcDb');
+const logger = require('./logger');
 
 /**
  * @param options Object with the following configuration.
@@ -96,6 +97,7 @@ NLCManager.prototype.classifierStatus = function(classifier_id){
 NLCManager.prototype.classify = function(text){
 	var dfd = Promise.defer();
 	this._getClassifier().then((classifier) => {
+		logger.info('Using classifier %s', JSON.stringify(classifier));
 		if (classifier.status === 'Training'){
 			dfd.resolve(classifier);
 		}
@@ -191,11 +193,13 @@ NLCManager.prototype._monitor = function(classifier_id){
 	var dfd = Promise.defer();
 
 	const checkAvailable = (dfd) => {
+		logger.info(`Checking status of classifier ${classifier_id}`);
 		this.nlc.status({classifier_id: classifier_id}, (err, status) => {
 			if (err){
 				dfd.reject('Error getting status for classifier in training.');
 			}
 			else {
+				logger.info(`Status of classifier ${classifier_id} is ${status.status}.`);
 				if (status.status === 'Training'){
 					setTimeout(() => {
 						checkAvailable(dfd);
@@ -205,6 +209,7 @@ NLCManager.prototype._monitor = function(classifier_id){
 					this.classifierTraining = undefined;
 					this.classifier_cache = status;
 					this._deleteOldClassifiers().then((result) => {
+						logger.info('Deleted old classifier', result);
 						dfd.resolve(status);
 					});
 				}
@@ -240,12 +245,13 @@ NLCManager.prototype._deleteOldClassifiers = function(){
 			});
 
 			if (filteredClassifiers.length > this.opts.maxClassifiers) {
+				logger.info(`Deleting classifier ${filteredClassifiers[filteredClassifiers.length - 1].classifier_id}`);
 				this.nlc.remove({classifier_id: filteredClassifiers[filteredClassifiers.length - 1].classifier_id}, (err, result) => {
 					if (err){
 						dfd.reject('Error deleting classifier: ' + JSON.stringify(err, null, 2));
 					}
 					else {
-						// console.log('Deleted classifier', filteredClassifiers[filteredClassifiers.length - 1].classifier_id);
+						logger.info('Deleted classifier', filteredClassifiers[filteredClassifiers.length - 1].classifier_id);
 						this._deleteOldClassifiers().then((result) => {
 							dfd.resolve(result);
 						}).catch((err) => {
@@ -275,6 +281,7 @@ NLCManager.prototype._getClassifier = function(doNotTrain){
 	var dfd = Promise.defer();
 
 	if (this.classifier_cache){
+		logger.debug(`Using cached NLC classifier ${this.classifier_cache.classifier_id}`);
 		dfd.resolve(this.classifier_cache);
 	}
 	else {
@@ -293,6 +300,7 @@ NLCManager.prototype._getClassifier = function(doNotTrain){
 					}
 					else {
 						// no classifiers found by this name, so create one and start training.
+						logger.info(`No classifiers found with name ${this.opts.classifierName}. Creating and training a new one.`);
 						this._startTraining().then((result) => {
 							dfd.resolve(result);
 						}).catch((err) => {
@@ -336,6 +344,7 @@ NLCManager.prototype._getClassifier = function(doNotTrain){
 							}
 							else {
 								// none are available or training, start training one.
+								logger.info(`No classifiers with name ${this.opts.classifierName} are avilable or in training. Start training a new one.`);
 								this._startTraining().then((result) => {
 									dfd.resolve(result);
 								}).catch((err) => {
