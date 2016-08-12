@@ -21,7 +21,7 @@ let textsByClass;
  */
 function ParamManager() {
 
-	logger.logDebug('ParamManager: ctor(): Entry');
+	logger.debug('ParamManager: ctor(): Entry');
 	// Update the Watson Alchemy constructor options
 	if (env.alchemy_url && env.alchemy_apikey) {
 		var alchemy_ctor_opts = {};
@@ -33,11 +33,11 @@ function ParamManager() {
 	}
 
 	else {
-		logger.logWarning('ParamManager: ctor(): Watson Alchemy is not configured. To configure set the HUBOT_WATSON_ALCHEMY_URL and HUBOT_WATSON_ALCHEMY_APIKEY environment variables.');
+		logger.warn('ParamManager: ctor(): Watson Alchemy is not configured. To configure set the HUBOT_WATSON_ALCHEMY_URL and HUBOT_WATSON_ALCHEMY_APIKEY environment variables.');
 		this.alchemy = null;
 	}
 
-	logger.logDebug('ParamManager: ctor(): Exit');
+	logger.debug('ParamManager: ctor(): Exit');
 }
 
 /**
@@ -93,7 +93,7 @@ function getParameterTypeFunction(parameterType) {
 
 		// If there is no pre-defined function, return error
 		else {
-			logger.logError(`ParamManager: getParameterTypeFunction(): No function found to handle parameter type ${parameterType}`);
+			logger.error(`ParamManager: getParameterTypeFunction(): No function found to handle parameter type ${parameterType}`);
 			reject(new Error(`Unable to find parameter type function to handle parameter type ${parameterType}`));
 		}
 
@@ -189,11 +189,11 @@ function processStatement(className, statement, classParameters, alchemy, textsF
 ParamManager.prototype.getParameters = function(className, statement, classParameters) {
 	var self = this;
 	return new Promise(function(resolve, reject) {
-		logger.logInfo(`ParamManager: getParameters(): Entry. className = ${className}; statement = ${statement}; classParameters = ${JSON.stringify(classParameters)}.`);
+		logger.info(`ParamManager: getParameters(): Entry. className = ${className}; statement = ${statement}; classParameters = ${JSON.stringify(classParameters)}.`);
 
 		// If the ParamManager is disabled, then return an empty set of parameters
 		if (env.paramParsingDisabled) {
-			logger.logInfo('ParamManager: getParameters(): Exit. parameters = {}.');
+			logger.info('ParamManager: getParameters(): Exit. parameters = {}.');
 			resolve({});
 		}
 
@@ -202,12 +202,12 @@ ParamManager.prototype.getParameters = function(className, statement, classParam
 
 			// Obtain the set of seeded text strings associated with the class (used by ParamDecoder)
 			getTextsByClass(className).then(function(textsForClass) {
-				logger.logDebug(`ParamManager: getParameters(): textsForClass = ${textsForClass}.`);
+				logger.debug(`ParamManager: getParameters(): textsForClass = ${textsForClass}.`);
 
 				// Make a first pass at obtaining the parameter values based on the original statement.
-				logger.logDebug('ParamManager: getParameters(): Begin pass 1.');
+				logger.debug('ParamManager: getParameters(): Begin pass 1.');
 				processStatement(className, statement, classParameters, self.alchemy, textsForClass).then(function(parameters) {
-					logger.logDebug(`ParamManager: getParameters(): End pass 1; parameters = ${JSON.stringify(parameters)}.`);
+					logger.debug(`ParamManager: getParameters(): End pass 1; parameters = ${JSON.stringify(parameters)}.`);
 
 					// Go through the parameter values obtained and see if any are missing.
 					// In addition, remove any parameter values that were found from the statement.
@@ -226,34 +226,34 @@ ParamManager.prototype.getParameters = function(className, statement, classParam
 					// If there are any missing parameter values, make a second pass at obtaining the
 					// missing parameter values based on the modified statement (having removed all found parameter values).
 					if (newClassParameters.length > 0) {
-						logger.logDebug(`ParamManager: getParameters(): Begin pass 2; newStatement = ${newStatement}; newClassParameters = ${newClassParameters}.`);
+						logger.debug(`ParamManager: getParameters(): Begin pass 2; newStatement = ${newStatement}; newClassParameters = ${newClassParameters}.`);
 						processStatement(className, newStatement, newClassParameters, self.alchemy, textsForClass).then(function(newParameters) {
-							logger.logDebug(`ParamManager: getParameters(): End pass 1; parameters = ${JSON.stringify(newParameters)}.`);
+							logger.debug(`ParamManager: getParameters(): End pass 1; parameters = ${JSON.stringify(newParameters)}.`);
 							for (var j = 0; j < newClassParameters.length; j++) {
 								var paramName = newClassParameters[j].name;
 								if (newParameters[paramName]) parameters[paramName] = newParameters[paramName];
 							}
-							logger.logInfo(`ParamManager: getParameters(): Exit. parameters = ${JSON.stringify(parameters)}.`);
+							logger.info(`ParamManager: getParameters(): Exit. parameters = ${JSON.stringify(parameters)}.`);
 							resolve(parameters);
 						}).catch(function(err) {
-							logger.logInfo(`ParamManager: getParameters(): Exit with error. error = ${err}.`);
+							logger.info(`ParamManager: getParameters(): Exit with error. error = ${err}.`);
 							reject(err);
 						});
 					}
 
 					// If all parameter values were found, return them
 					else {
-						logger.logInfo(`ParamManager: getParameters(): Exit. parameters = ${JSON.stringify(parameters)}.`);
+						logger.info(`ParamManager: getParameters(): Exit. parameters = ${JSON.stringify(parameters)}.`);
 						resolve(parameters);
 					}
 
 				}).catch(function(err) {
-					logger.logInfo(`ParamManager: getParameters(): Exit with error. error = ${err}.`);
+					logger.info(`ParamManager: getParameters(): Exit with error. error = ${err}.`);
 					reject(err);
 				});
 
 			}).catch(function(err) {
-				logger.logInfo(`ParamManager: getParameters(): Exit with error. error = ${err}.`);
+				logger.info(`ParamManager: getParameters(): Exit with error. error = ${err}.`);
 				reject(err);
 			});
 
@@ -261,7 +261,7 @@ ParamManager.prototype.getParameters = function(className, statement, classParam
 
 		// If no parameters associated with class ... we're done.
 		else {
-			logger.logInfo('ParamManager: getParameters(): Exit. parameters = {}.');
+			logger.info('ParamManager: getParameters(): Exit. parameters = {}.');
 			resolve({});
 		}
 
