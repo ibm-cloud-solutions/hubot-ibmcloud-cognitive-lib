@@ -23,8 +23,8 @@ const settings = {
 	dbPath: process.env.HUBOT_DB_PATH || './',
 	dbDirectory: process.env.HUBOT_DB_DIRECTORY || 'databases',
 	syncInterval: process.env.SYNC_INTERVAL || '1800000', // default 30 minutes
-	highThreshold: process.env.CONFIDENCE_THRESHOLD_HIGH || '0.9',
-	lowThreshold: process.env.CONFIDENCE_THRESHOLD_LOW || '0.3',
+	highThreshold: process.env.CONFIDENCE_THRESHOLD_HIGH || '0.8',
+	lowThreshold: process.env.CONFIDENCE_THRESHOLD_LOW || '0.05',
 	test: process.env.HUBOT_DB_TEST || false,
 	version: 'v1',
 	suppressErrors: process.env.SUPPRESS_ERRORS || false,
