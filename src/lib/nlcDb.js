@@ -160,7 +160,7 @@ module.exports.getClassEmitTarget = function(className){
 	});
 };
 
-module.exports.getClasses = function(){
+module.exports.getClasses = function(approvedAfterDate){
 	// assumption that the database can be held in memory
 	// note classifier will break if this is not the case
 	// return an array of [text, className]
@@ -171,7 +171,24 @@ module.exports.getClasses = function(){
 			return this.db.query(classesView, {
 				include_docs: true
 			}).then((res) => {
+				if (approvedAfterDate && typeof approvedAfterDate === 'number'){
+					approvedAfterDate = new Date(approvedAfterDate);
+				}
+
 				for (let row of res.rows){
+					// Filter records without an approvedDate or approved before the given date.
+					if (approvedAfterDate) {
+						if (row.doc.approved){
+							let approvedDate = row.doc.approved_timestamp || row.doc.approved;
+							if (new Date(parseInt(approvedDate, 10)) < approvedAfterDate){
+								continue;
+							}
+						}
+						else {
+							continue;
+						}
+					}
+
 					let className = row.key;
 					// allow short hand assignment for classifications
 					let text = row.doc.text || row.doc.classification.text;
