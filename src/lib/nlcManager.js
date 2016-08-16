@@ -387,8 +387,8 @@ NLCManager.prototype._getClassifierStatus = function(classifier_id){
 			else {
 				// If classifier is Training, record it's training duration
 				if (status.status === 'Training') {
-					// Seems to be a discrepancy of ~3 minutes when calculating total duration
-					status.duration = Math.floor(((Date.now() - new Date(status.created)) / 60000) - 3);
+					var duration = Math.floor((Date.now() - new Date(status.created)) / 60000);
+					status.duration = duration > 0 ? duration : 0;
 				}
 				dfd.resolve(status);
 			}
