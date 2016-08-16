@@ -87,6 +87,15 @@ NLCManager.prototype.classifierStatus = function(classifier_id){
 	return this._getClassifierStatus(classifier_id);
 };
 
+/**
+ * Gets list of classifiers
+ *
+ * @return Promise       			When resolved returns a list of classifiers.
+ */
+NLCManager.prototype.classifierList = function(){
+	return this._getClassifierList();
+};
+
 
 /**
  * Returns classification data for a statement using the latest classifier available.
@@ -376,6 +385,11 @@ NLCManager.prototype._getClassifierStatus = function(classifier_id){
 				dfd.reject('Error while checking status of classifier ' + classifier_id + JSON.stringify(err, null, 2));
 			}
 			else {
+				// If classifier is Training, record it's training duration
+				if (status.status === 'Training') {
+					var duration = Math.floor((Date.now() - new Date(status.created)) / 60000);
+					status.duration = duration > 0 ? duration : 0;
+				}
 				dfd.resolve(status);
 			}
 		});
@@ -390,5 +404,39 @@ NLCManager.prototype._getClassifierStatus = function(classifier_id){
 	return dfd.promise;
 };
 
+/**
+ * Helper method to list all classifiers.
+ *
+ * @return Promise When resolved it returns an array of JSON objects with each classifier's information.
+ */
+NLCManager.prototype._getClassifierList = function(){
+	var dfd = Promise.defer();
+
+	this.nlc.list({}, (err, response) => {
+		if (err) {
+			dfd.reject('Error getting list of classifiers.' + JSON.stringify(err, null, 2));
+		}
+		else {
+			var checkStatus = [];
+			response.classifiers.map((classifier) => {
+				checkStatus.push(this._getClassifierStatus(classifier.classifier_id));
+			});
+
+			Promise.all(checkStatus).then((classifiers) => {
+				// Sort by latest created; first Available classifiers, then Training
+				var sortedClassifiers = classifiers.sort((a, b) => {
+					if (a.status !== b.status) {
+						return a.status === 'Available' ? -1 : 1;
+					}
+					return new Date(b.created) - new Date(a.created);
+				});
+				dfd.resolve(sortedClassifiers);
+			}).catch((err) => {
+				dfd.reject('Error getting list of classifiers.' + JSON.stringify(err, null, 2));
+			});
+		}
+	});
+	return dfd.promise;
+};
 
 module.exports = NLCManager;

@@ -25,7 +25,6 @@ describe('Test the NLCManager library', function(){
 		return db.setup;
 	});
 
-
 	before(function() {
 		return mockNLP.setupMockery();
 	});
@@ -62,11 +61,20 @@ describe('Test the NLCManager library', function(){
 		});
 	});
 
-	it('should successfullt to get status of most recent training classifier', function(done){
+	it('should successfully get status of most recent training classifier', function(done){
 		watson_nlc.opts.classifierName = trainingClassifier;
 		watson_nlc.nlc._options.classifierName = trainingClassifier;
 		watson_nlc.classifierStatus().then(function(result){
 			expect(result.status).to.be.equal('Training');
+			done();
+		});
+	});
+
+	it('should successfully list all classifiers in correct order', function(done){
+		watson_nlc.classifierList().then(function(result){
+			expect(result.length).to.be.equal(5);
+			expect(result[0].name).to.be.equal('test-classifier');
+			expect(result[4].name).to.be.equal(trainingClassifier);
 			done();
 		});
 	});
@@ -112,6 +120,19 @@ describe('Test the NLCManager library', function(){
 		watson_nlc.trainIfNeeded().then(function(result){
 			expect(result.status).to.be.equal('Training');
 			done();
+		});
+	});
+
+	describe('NLC 500 errors', function(){
+		before(function() {
+			return mockNLP.setupMockErrors();
+		});
+
+		it('should fail to list all classifiers', function(done){
+			watson_nlc.classifierList().catch(function(error){
+				expect(error).to.include('Error getting list of classifiers.');
+				done();
+			});
 		});
 	});
 });

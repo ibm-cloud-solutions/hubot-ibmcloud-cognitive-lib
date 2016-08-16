@@ -66,5 +66,17 @@ module.exports = {
 		// Mock route to create a new classifier.
 		nlcScope.post('/v1/classifiers')
 		.reply(201, mockClassifierStatusTrainingResults.testClassifier);
+	},
+
+	setupMockErrors: function() {
+		nock.cleanAll();
+		nock.disableNetConnect();
+		let nlcErrorScope = nock(nlcEndpoint).persist();
+
+		// Mock route to list all classifiers.
+		nlcErrorScope.get('/v1/classifiers')
+		.reply(500, function(){
+			return 'Some 500 error message from the NLC service';
+		});
 	}
 };
