@@ -24,7 +24,7 @@ describe('Testing NLC Configuration', function() {
 
 	context('Verify class-related data is stored properly', function() {
 
-		it('Verify getAllClasses', function() {
+		it('Verify getAllClasses()', function() {
 			return nlcconfig.getAllClasses().then(function(classes) {
 				// should be at least 1 class in the database
 				// the seed db test increases the number of classes and the order
@@ -40,6 +40,22 @@ describe('Testing NLC Configuration', function() {
 					}
 				}
 				expect(approved).to.eql(true);
+			});
+		});
+
+		it('Verify getAllClasses(approvedAfterDate) - with new Date() object', function(){
+			return nlcconfig.getAllClasses(new Date(Date.now() - 1000)).then(function(classes) {
+				expect(classes.length).to.be.eql(1);
+				expect(classes[0][0]).to.be.eql('should see this');
+				expect(classes[0][1]).to.be.eql('approved');
+			});
+		});
+
+		it('Verify getAllClasses(approvedAfterDate) - with date in ms', function(){
+			return nlcconfig.getAllClasses(Date.now() - 1000).then(function(classes) {
+				expect(classes.length).to.be.eql(1);
+				expect(classes[0][0]).to.be.eql('should see this');
+				expect(classes[0][1]).to.be.eql('approved');
 			});
 		});
 

@@ -10,10 +10,15 @@ const nlcDb = require('./nlcDb');
 
 /**
  * Return array of class definitions for all classes (emit target, textfile, and parameters).
+ *
+ * @param 	Date 	approvedAfterDate 	A Date() object used to filter and return only class definitions
+ *                                  	approved after the given date. It tolerates dates specified in ms.
+ *
+ * @return	[]		Array of class definitions for all classes (emit target, textfile, and parameters).
  */
-exports.getAllClasses = function() {
+exports.getAllClasses = function(approvedAfterDate) {
 	return nlcDb.open().then((db) => {
-		return nlcDb.getClasses();
+		return nlcDb.getClasses(approvedAfterDate);
 	});
 };
 
