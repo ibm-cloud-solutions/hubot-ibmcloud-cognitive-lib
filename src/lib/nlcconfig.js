@@ -41,3 +41,17 @@ exports.updateGlobalParameterValues = function(name, values){
 		values: values
 	});
 };
+
+/**
+* Get auto-approve setting
+*/
+exports.getAutoApprove = function(){
+	return nlcDb.getAutoApprove();
+};
+
+/**
+* Set auto-approve setting
+*/
+exports.setAutoApprove = function(value){
+	return nlcDb.setAutoApprove(value);
+};
