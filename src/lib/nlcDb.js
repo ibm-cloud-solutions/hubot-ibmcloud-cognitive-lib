@@ -297,3 +297,16 @@ module.exports.info = function(opts){
 		}
 	});
 };
+
+module.exports.getAutoApprove = function() {
+	return env.truthy(env.nlc_autoApprove);
+};
+
+module.exports.setAutoApprove = function(approve) {
+	if (typeof (approve) === 'boolean') {
+		env.nlc_autoApprove = approve;
+	}
+	else {
+		env.nlc_autoApprove = false;
+	}
+};

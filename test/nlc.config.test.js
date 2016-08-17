@@ -76,7 +76,17 @@ describe('Testing NLC Configuration', function() {
 				expect(tgt.description).to.eql(descriptionText);
 			});
 		});
-
 	});
 
+	context('Verify Auto Approve setter/getter', function() {
+		it('Verify getAutoApprove contains correct value', function() {
+			expect(nlcconfig.getAutoApprove()).to.eql(true);
+		});
+
+		it('Verify setAutoApprove sets correct value', function() {
+			nlcconfig.setAutoApprove(false);
+			expect(nlcconfig.getAutoApprove()).to.eql(false);
+			nlcconfig.setAutoApprove(true);
+		});
+	});
 });
