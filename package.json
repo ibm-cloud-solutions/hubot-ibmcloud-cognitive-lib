@@ -3,7 +3,7 @@
   "version": "0.0.32",
   "description": "Provides cognitive libraries to assist Hubot developers to interpret natural language.",
   "main": "index.js",
-  "respository": {
+  "repository": {
     "url": "https://github.com/ibm-cloud-solutions/hubot-ibmcloud-cognitive-lib",
     "type": "git"
   },
