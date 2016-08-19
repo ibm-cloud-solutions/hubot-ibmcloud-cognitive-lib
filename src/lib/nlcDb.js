@@ -7,8 +7,8 @@
 'use strict';
 
 const path = require('path');
-const events = require('events');
-const eventEmitter = new events.EventEmitter();
+const TAG = path.basename(__filename);
+const logger = require('./logger');
 const env = require('./env');
 const HubotPouch = require('./hubotPouch');
 const pjson = require(path.resolve(process.cwd(), 'package.json'));
@@ -17,6 +17,9 @@ const classesDesignDoc = '_design/classes';
 const classesView = 'classes/byClass';
 const targetView = 'classes/byTarget';
 
+// TODO: Commenting because we don't currently use this, enable auto-training in the future.
+// const events = require('events');
+// const eventEmitter = new events.EventEmitter();
 
 const pouch = new Promise((resolve, reject) => {
 	try {
@@ -24,44 +27,49 @@ const pouch = new Promise((resolve, reject) => {
 		this.db = db;
 
 		const syncFn = function(){
-			let update = false;
+			logger.info(`${TAG}: Starting sync of NLC training data with Cloudant.`);
+			// TODO: Commenting because we don't currently use this, but auto-training should be a future enhancement.
+			// let update = false;
 			db.sync(`https://${env.cloudantKey}:${env.cloudantPassword}@${env.cloudantEndpoint}/${env.cloudantDb}`,
 				{
 					include_docs: true,
 					filter: function(doc) {
 						// filter client side documents that we don't want synchronized
-						if (doc.storageType === 'private'){
-							return false;
-						}
-						else {
-							return true;
-						}
+						return doc.storageType !== 'private';
 					}
 				})
-				.on('change', function(change){
-					update = true;
-				})
+				// .on('change', function(change){
+				// 	update = true;
+				// })
 				.on('complete', function(info){
-					if (update){
-						eventEmitter.emit('nlc.retrain');
-					}
+					logger.info(`${TAG}: Completed sync of NLC training data with Cloudant.`);
+					logger.debug(`${TAG}: Cloudant sync results.`, info);
+
+					// if (update){
+					// 	eventEmitter.emit('nlc.retrain');
+					// }
 					setTimeout(syncFn, env.syncInterval);
+				})
+				.on('denied', function(err){
+					logger.error(`${TAG}: Replication of NLC training data record denied.`, err);
 				})
 				.on('error', function(err){
-					console.log(err);
-					setTimeout(syncFn, env.syncInterval);
+					let retryInterval = Math.min(env.syncInterval, 1000 * 60);
+					logger.error(`${TAG}: Error during sync of NLC training data with Cloudant. Will retry in ${Math.floor(retryInterval / 1000)} seconds.`, err);
+					setTimeout(syncFn, retryInterval);
 				});
 		};
 
 		return db.get('_design/classes').then(() => {
 			// sync if enabled
 			if (env.cloudantDb !== undefined)
-				setTimeout(syncFn, env.syncInterval);
+				syncFn();
 			resolve(this);
 		}).catch(() => {
 			// create design doc
 			let ddoc = {
 				_id: classesDesignDoc,
+				storageType: 'private',
 				views: {
 					byClass: {
 						map: 'function(doc) { if (doc.selectedClass && doc.approved){ emit(doc.selectedClass); } if (doc.class && doc.text){ emit(doc.class); }}'
@@ -75,15 +83,17 @@ const pouch = new Promise((resolve, reject) => {
 			return db.put(ddoc).then(() => {
 				// sync if not testing
 				if (!env.test)
-					setTimeout(syncFn, env.syncInterval);
+					syncFn();
 				resolve(this);
 			}).catch((err) => {
+				logger.error(`${TAG}: Error initializing Cloudant sync`, err);
 				reject(err);
 			});
 		});
 
 	}
 	catch (e) {
+		logger.error(`${TAG}: unexpected problem with Cloudant sync.`);
 		reject(e);
 	}
 });
@@ -229,7 +239,7 @@ module.exports.post = function(classification, type, selectedClass) {
 			doc.classification = classification;
 		}
 
-		if (selectedClass) {
+		if (selectedClass && type === 'learned') {
 			doc.selectedClass = selectedClass;
 			if (env.truthy(env.nlc_autoApprove)) {
 				doc.approved = true;
