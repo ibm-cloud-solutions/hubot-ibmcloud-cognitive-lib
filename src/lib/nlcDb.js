@@ -257,8 +257,6 @@ module.exports.post = function(classification, type, selectedClass) {
 		if (this.db){
 			return this.db.post(doc).then((result) => {
 				resolve(result);
-			}).catch((err) => {
-				reject(err);
 			});
 		}
 		else {
@@ -297,8 +295,6 @@ module.exports.info = function(opts){
 				if (opts && (opts.allDocs || opts.include_docs)){
 					return this.db.allDocs(opts).then((allDocs) => {
 						resolve(allDocs);
-					}).catch((err) => {
-						reject(err);
 					});
 				}
 				else {
