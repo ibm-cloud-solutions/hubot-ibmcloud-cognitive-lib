@@ -9,8 +9,6 @@
 const path = require('path');
 const TAG = path.basename(__filename);
 const logger = require('./logger');
-const events = require('events');
-const eventEmitter = new events.EventEmitter();
 const env = require('./env');
 const HubotPouch = require('./hubotPouch');
 const pjson = require(path.resolve(process.cwd(), 'package.json'));
@@ -19,6 +17,9 @@ const classesDesignDoc = '_design/classes';
 const classesView = 'classes/byClass';
 const targetView = 'classes/byTarget';
 
+// TODO: Commenting because we don't currently use this, enable auto-training in the future.
+// const events = require('events');
+// const eventEmitter = new events.EventEmitter();
 
 const pouch = new Promise((resolve, reject) => {
 	try {
@@ -27,7 +28,8 @@ const pouch = new Promise((resolve, reject) => {
 
 		const syncFn = function(){
 			logger.info(`${TAG}: Starting sync of NLC training data with Cloudant.`);
-			// let update = false;  //TODO: Commenting because we don't currently use this, but this is a good possible enhancement.
+			// TODO: Commenting because we don't currently use this, but auto-training should be a future enhancement.
+			// let update = false;
 			db.sync(`https://${env.cloudantKey}:${env.cloudantPassword}@${env.cloudantEndpoint}/${env.cloudantDb}`,
 				{
 					include_docs: true,
