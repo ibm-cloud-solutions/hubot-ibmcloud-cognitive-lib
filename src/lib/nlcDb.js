@@ -7,6 +7,8 @@
 'use strict';
 
 const path = require('path');
+const TAG = path.basename(__filename);
+const logger = require('./logger');
 const events = require('events');
 const eventEmitter = new events.EventEmitter();
 const env = require('./env');
@@ -24,6 +26,7 @@ const pouch = new Promise((resolve, reject) => {
 		this.db = db;
 
 		const syncFn = function(){
+			logger.info(`${TAG}: Starting sync of NLC training data with Cloudant.`);
 			let update = false;
 			db.sync(`https://${env.cloudantKey}:${env.cloudantPassword}@${env.cloudantEndpoint}/${env.cloudantDb}`,
 				{
@@ -42,26 +45,34 @@ const pouch = new Promise((resolve, reject) => {
 					update = true;
 				})
 				.on('complete', function(info){
+					logger.info(`${TAG}: Completed sync of NLC training data with Cloudant.`);
+					logger.debug(`${TAG}: Cloudant sync results.`, info);
+
 					if (update){
 						eventEmitter.emit('nlc.retrain');
 					}
 					setTimeout(syncFn, env.syncInterval);
 				})
+				.on('denied', function(err){
+					logger.error(`${TAG}: Replication of NLC training data record denied.`, err);
+				})
 				.on('error', function(err){
-					console.log(err);
-					setTimeout(syncFn, env.syncInterval);
+					let retryInterval = Math.min(env.syncInterval, 1000 * 60);
+					logger.error(`${TAG}: Error during sync of NLC training data with Cloudant. Will retry in ${Math.floor(retryInterval / 1000)} seconds.`, err);
+					setTimeout(syncFn, retryInterval);
 				});
 		};
 
 		return db.get('_design/classes').then(() => {
 			// sync if enabled
 			if (env.cloudantDb !== undefined)
-				setTimeout(syncFn, env.syncInterval);
+				syncFn();
 			resolve(this);
 		}).catch(() => {
 			// create design doc
 			let ddoc = {
 				_id: classesDesignDoc,
+				storageType: 'private',
 				views: {
 					byClass: {
 						map: 'function(doc) { if (doc.selectedClass && doc.approved){ emit(doc.selectedClass); } if (doc.class && doc.text){ emit(doc.class); }}'
@@ -75,15 +86,17 @@ const pouch = new Promise((resolve, reject) => {
 			return db.put(ddoc).then(() => {
 				// sync if not testing
 				if (!env.test)
-					setTimeout(syncFn, env.syncInterval);
+					syncFn();
 				resolve(this);
 			}).catch((err) => {
+				logger.error(`${TAG}: Error initializing Cloudant sync`, err);
 				reject(err);
 			});
 		});
 
 	}
 	catch (e) {
+		logger.error(`${TAG}: unexpected problem with Cloudant sync.`);
 		reject(e);
 	}
 });
@@ -229,7 +242,7 @@ module.exports.post = function(classification, type, selectedClass) {
 			doc.classification = classification;
 		}
 
-		if (selectedClass) {
+		if (selectedClass && type === 'learned') {
 			doc.selectedClass = selectedClass;
 			if (env.truthy(env.nlc_autoApprove)) {
 				doc.approved = true;
@@ -247,6 +260,8 @@ module.exports.post = function(classification, type, selectedClass) {
 		if (this.db){
 			return this.db.post(doc).then((result) => {
 				resolve(result);
+			}).catch((err) => {
+				reject(err);
 			});
 		}
 		else {
@@ -285,6 +300,8 @@ module.exports.info = function(opts){
 				if (opts && (opts.allDocs || opts.include_docs)){
 					return this.db.allDocs(opts).then((allDocs) => {
 						resolve(allDocs);
+					}).catch((err) => {
+						reject(err);
 					});
 				}
 				else {

@@ -10,11 +10,14 @@ const winston = require('winston');
 module.exports = new (winston.Logger)({
 	transports: [
 		new (winston.transports.Console)({
-			level: process.env.COGNITIVE_LOG_LEVEL || 'error',
+			level: process.env.COGNITIVE_LOG_LEVEL || 'info',
 			silent: Boolean(process.env.SUPPRESS_ERRORS) || false,
 			prettyPrint: true,
 			colorize: true,
-			timestamp: true
+			timestamp: function(){
+				let d = new Date();
+				return '[' + d.toDateString() + ' ' + d.toTimeString() + ']';
+			}
 		})
 	]
 });
