@@ -15,8 +15,7 @@ module.exports = new (winston.Logger)({
 			prettyPrint: true,
 			colorize: true,
 			timestamp: function(){
-				let d = new Date();
-				return '[' + d.toDateString() + ' ' + d.toTimeString() + ']';
+				return '[' + new Date().toDateString() + ' ' + new Date().toTimeString() + ']';
 			}
 		})
 	]

@@ -27,30 +27,25 @@ const pouch = new Promise((resolve, reject) => {
 
 		const syncFn = function(){
 			logger.info(`${TAG}: Starting sync of NLC training data with Cloudant.`);
-			let update = false;
+			// let update = false;  //TODO: Commenting because we don't currently use this, but this is a good possible enhancement.
 			db.sync(`https://${env.cloudantKey}:${env.cloudantPassword}@${env.cloudantEndpoint}/${env.cloudantDb}`,
 				{
 					include_docs: true,
 					filter: function(doc) {
 						// filter client side documents that we don't want synchronized
-						if (doc.storageType === 'private'){
-							return false;
-						}
-						else {
-							return true;
-						}
+						return doc.storageType !== 'private';
 					}
 				})
-				.on('change', function(change){
-					update = true;
-				})
+				// .on('change', function(change){
+				// 	update = true;
+				// })
 				.on('complete', function(info){
 					logger.info(`${TAG}: Completed sync of NLC training data with Cloudant.`);
 					logger.debug(`${TAG}: Cloudant sync results.`, info);
 
-					if (update){
-						eventEmitter.emit('nlc.retrain');
-					}
+					// if (update){
+					// 	eventEmitter.emit('nlc.retrain');
+					// }
 					setTimeout(syncFn, env.syncInterval);
 				})
 				.on('denied', function(err){
