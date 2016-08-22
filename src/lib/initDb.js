@@ -113,12 +113,12 @@ if (!env.test){
 			console.log('Database initialization complete');
 			process.exit(0);
 		}).catch((err) => {
-			console.log(err);
 			if (err.status === 409){
 				console.warn('nlc database already exists! Delete it and run initDb again to update.');
 				process.exit(0);
 			}
 			else {
+				console.log(err);
 				process.exit(1);
 			}
 		});
