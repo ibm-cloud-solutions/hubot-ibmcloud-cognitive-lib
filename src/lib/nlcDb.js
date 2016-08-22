@@ -27,7 +27,7 @@ const pouch = new Promise((resolve, reject) => {
 		this.db = db;
 
 		const syncFn = function(){
-			if (!env.text && env.cloudantEndpoint && env.cloudantPassword) {
+			if (!env.test && env.cloudantEndpoint && env.cloudantPassword) {
 				logger.info(`${TAG}: Starting sync of NLC training data with Cloudant.`);
 
 				// let update = false;  TODO: Commenting because we don't currently use this, but auto-training should be a future enhancement.
