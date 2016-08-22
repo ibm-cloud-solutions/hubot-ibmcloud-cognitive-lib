@@ -61,8 +61,8 @@ const open = new Promise((resolve, reject) => {
 		}).then(() => {
 			return db.put({
 				_id: 'classifier-data-123',
-				trainedData: 'Sample classification text,classification\nSample classification text 2,classification\nSample classification text 3,classification3',
-				storageType: 'private'
+				type: 'classifier_data',
+				trainedData: 'Sample classification text,classification\nSample classification text 2,classification\nSample classification text 3,classification3'
 			});
 		}).then(() => {
 			return db.put(learned);
