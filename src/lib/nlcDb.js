@@ -60,6 +60,9 @@ const pouch = new Promise((resolve, reject) => {
 						setTimeout(syncFn, retryInterval);
 					});
 			}
+			else {
+				logger.warn(`${TAG}: Cloudant sync disabled. To enable set HUBOT_CLOUDANT_ENDPOINT and HUBOT_CLOUDANT_PASSWORD.`);
+			}
 		};
 
 		return db.get('_design/classes').then(() => {
