@@ -104,6 +104,13 @@ describe('Test the NLCManager library', function(){
 				done();
 			});
 		});
+
+		it('should fail to get training data for a classifier that doesn\'t exist', function(done){
+			watson_nlc.getClassifierData('bad-classifier').catch((error) => {
+				expect(error).to.be.equal('Error retrieving data used to train classifier bad-classifier');
+				done();
+			});
+		});
 	});
 
 	it('Should not train existing classifier', function(done){
@@ -122,6 +129,17 @@ describe('Test the NLCManager library', function(){
 			done();
 		});
 	});
+
+	it('should successfully get training data for classifier', function(done){
+		watson_nlc.getClassifierData('classifier-data-123').then((result) => {
+			expect(result.classification).to.be.an('array');
+			expect(result.classification[0]).to.be.eql('Sample classification text');
+			expect(result.classification[1]).to.be.eql('Sample classification text 2');
+			expect(result.classification3[0]).to.be.eql('Sample classification text 3');
+			done();
+		});
+	});
+
 
 	describe('NLC 500 errors', function(){
 		before(function() {
