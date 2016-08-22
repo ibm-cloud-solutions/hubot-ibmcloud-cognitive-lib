@@ -27,43 +27,44 @@ const pouch = new Promise((resolve, reject) => {
 		this.db = db;
 
 		const syncFn = function(){
-			logger.info(`${TAG}: Starting sync of NLC training data with Cloudant.`);
-			// TODO: Commenting because we don't currently use this, but auto-training should be a future enhancement.
-			// let update = false;
-			db.sync(`https://${env.cloudantKey}:${env.cloudantPassword}@${env.cloudantEndpoint}/${env.cloudantDb}`,
-				{
-					include_docs: true,
-					filter: function(doc) {
-						// filter client side documents that we don't want synchronized
-						return doc.storageType !== 'private';
-					}
-				})
-				// .on('change', function(change){
-				// 	update = true;
-				// })
-				.on('complete', function(info){
-					logger.info(`${TAG}: Completed sync of NLC training data with Cloudant.`);
-					logger.debug(`${TAG}: Cloudant sync results.`, info);
+			if (!env.text && env.cloudantEndpoint && env.cloudantPassword) {
+				logger.info(`${TAG}: Starting sync of NLC training data with Cloudant.`);
 
-					// if (update){
-					// 	eventEmitter.emit('nlc.retrain');
-					// }
-					setTimeout(syncFn, env.syncInterval);
-				})
-				.on('denied', function(err){
-					logger.error(`${TAG}: Replication of NLC training data record denied.`, err);
-				})
-				.on('error', function(err){
-					let retryInterval = Math.min(env.syncInterval, 1000 * 60);
-					logger.error(`${TAG}: Error during sync of NLC training data with Cloudant. Will retry in ${Math.floor(retryInterval / 1000)} seconds.`, err);
-					setTimeout(syncFn, retryInterval);
-				});
+				// let update = false;  TODO: Commenting because we don't currently use this, but auto-training should be a future enhancement.
+				db.sync(`https://${env.cloudantKey}:${env.cloudantPassword}@${env.cloudantEndpoint}/${env.cloudantDb}`,
+					{
+						include_docs: true,
+						filter: function(doc) {
+							// filter client side documents that we don't want synchronized
+							return doc.storageType !== 'private';
+						}
+					})
+					// .on('change', function(change){
+					// 	update = true;
+					// })
+					.on('complete', function(info){
+						logger.info(`${TAG}: Completed sync of NLC training data with Cloudant.`);
+						logger.debug(`${TAG}: Cloudant sync results.`, info);
+
+						// if (update){
+						// 	eventEmitter.emit('nlc.retrain');
+						// }
+						setTimeout(syncFn, env.syncInterval);
+					})
+					.on('denied', function(err){
+						logger.error(`${TAG}: Replication of NLC training data record denied.`, err);
+					})
+					.on('error', function(err){
+						let retryInterval = Math.min(env.syncInterval, 1000 * 60);
+						logger.error(`${TAG}: Error during sync of NLC training data with Cloudant. Will retry in ${Math.floor(retryInterval / 1000)} seconds.`, err);
+						setTimeout(syncFn, retryInterval);
+					});
+			}
 		};
 
 		return db.get('_design/classes').then(() => {
 			// sync if enabled
-			if (env.cloudantDb !== undefined)
-				syncFn();
+			syncFn();
 			resolve(this);
 		}).catch(() => {
 			// create design doc
@@ -81,9 +82,8 @@ const pouch = new Promise((resolve, reject) => {
 			};
 
 			return db.put(ddoc).then(() => {
-				// sync if not testing
-				if (!env.test)
-					syncFn();
+				// sync if enabled
+				syncFn();
 				resolve(this);
 			}).catch((err) => {
 				logger.error(`${TAG}: Error initializing Cloudant sync`, err);
