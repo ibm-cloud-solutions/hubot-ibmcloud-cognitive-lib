@@ -12,7 +12,8 @@ const expect = require('chai').expect;
 const NLCManager = require('../index').nlcManager;
 const mockNLP = require('./nlcManager.mock');
 const env = require('../src/lib/env.js');
-const db = require('./setupTestDb');
+const dbSetup = require('./setupTestDb');
+var db;
 
 describe('Test the NLCManager library', function(){
 	var watson_nlc;
@@ -21,8 +22,11 @@ describe('Test the NLCManager library', function(){
 	var trainingClassifier = 'test-classifier3';
 	var unavailableClassifier = 'test-classifier4';
 
-	before(function(){
-		return db.setup;
+	before(function(done){
+		dbSetup.setup().then((database) => {
+			db = database;
+			done();
+		});
 	});
 
 	before(function() {
@@ -47,10 +51,15 @@ describe('Test the NLCManager library', function(){
 		});
 	});
 
-	it('Should monitor a classifier while it is being trained', function(done){
+	it('Should monitor a classifier while it is being trained and delete old classifiers when training completes', function(done){
 		watson_nlc.monitorTraining('cd02b5x110-nlc-5110').then(function(result){
 			expect(result.status).to.be.equal('Available');
-			done();
+
+			db.get('cd02b5x110-nlc-0000').catch((err) => {
+				expect(err.name).to.be.eql('not_found');
+				expect(err.reason).to.be.eql('deleted');
+				done();
+			});
 		});
 	});
 
@@ -75,6 +84,14 @@ describe('Test the NLCManager library', function(){
 			expect(result.length).to.be.equal(5);
 			expect(result[0].name).to.be.equal('test-classifier');
 			expect(result[4].name).to.be.equal(trainingClassifier);
+			done();
+		});
+	});
+
+	it('should successfully get the current classifier', function(done){
+		watson_nlc.currentClassifier().then(function(result){
+			expect(result.name).to.be.eql('test-classifier');
+			expect(result.classifier_id).to.be.eql('cd02b5x110-nlc-5110');
 			done();
 		});
 	});
@@ -104,6 +121,13 @@ describe('Test the NLCManager library', function(){
 				done();
 			});
 		});
+
+		it('should fail to get training data for a classifier that doesn\'t exist', function(done){
+			watson_nlc.getClassifierData('bad-classifier').catch((error) => {
+				expect(error).to.be.equal('Error retrieving data used to train classifier bad-classifier');
+				done();
+			});
+		});
 	});
 
 	it('Should not train existing classifier', function(done){
@@ -122,6 +146,17 @@ describe('Test the NLCManager library', function(){
 			done();
 		});
 	});
+
+	it('should successfully get training data for classifier', function(done){
+		watson_nlc.getClassifierData('classifier-data-123').then((result) => {
+			expect(result.classification).to.be.an('array');
+			expect(result.classification[0]).to.be.eql('Sample classification text');
+			expect(result.classification[1]).to.be.eql('Sample classification text 2');
+			expect(result.classification3[0]).to.be.eql('Sample classification text 3');
+			done();
+		});
+	});
+
 
 	describe('NLC 500 errors', function(){
 		before(function() {

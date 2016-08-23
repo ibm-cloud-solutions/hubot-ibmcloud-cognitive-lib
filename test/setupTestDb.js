@@ -59,6 +59,18 @@ const open = new Promise((resolve, reject) => {
 				storageType: 'private'
 			});
 		}).then(() => {
+			return db.put({
+				_id: 'cd02b5x110-nlc-0000',
+				type: 'classifier_data',
+				trainedData: 'This classifier should be deleted.'
+			});
+		}).then(() => {
+			return db.put({
+				_id: 'classifier-data-123',
+				type: 'classifier_data',
+				trainedData: 'Sample classification text,classification\nSample classification text 2,classification\nSample classification text 3,classification3'
+			});
+		}).then(() => {
 			return db.put(learned);
 		}).then(() => {
 			return db.put(unclassified);

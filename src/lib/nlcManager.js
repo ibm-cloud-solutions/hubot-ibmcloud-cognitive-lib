@@ -6,8 +6,11 @@
   */
 'use strict';
 
+const path = require('path');
+const TAG = path.basename(__filename);
 const watson = require('watson-developer-cloud');
 const stringify = require('csv-stringify');
+const csvParse = require('csv-parse');
 const nlcDb = require('./nlcDb');
 const logger = require('./logger');
 
@@ -21,6 +24,7 @@ const logger = require('./logger');
  *        options.classifierName = Watson NLC classifier name (OPTIONAL, defaults to 'default-classifier')
  *        options.maxClassifiers = Maximum number of classifiers with name 'classifierName', will delete classifiers exceding this num (OPTIONAL, defaults to 3)
  *        options.training_data = ReadStream, typically created from a CSV file.  (OPTIONAL, if omitted training data will come from nlcDb)
+ *        options.saveTrainingData = Saves data used to train the classifier (OPTIONAL, defaults to true)
  * @constructor
  */
 function NLCManager(options) {
@@ -29,6 +33,7 @@ function NLCManager(options) {
 	this.opts.classifierName = options.classifierName || 'default-classifier';
 	this.opts.maxClassifiers = options.maxClassifiers || 3;
 	this.opts.classifierLanguage = options.language || 'en';
+	this.opts.saveTrainingData = options.saveTrainingData === false ? options.saveTrainingData : true;
 
 	this.nlc = watson.natural_language_classifier(this.opts);
 }
@@ -53,15 +58,13 @@ NLCManager.prototype.train = function(){
  * @return Promise Resolved with existing classifier or new classifier information if training is needed.
  */
 NLCManager.prototype.trainIfNeeded = function(){
-	var dfd = Promise.defer();
-
-	this._getClassifier().then((classifier) => {
-		dfd.resolve(classifier);
-	}).catch((err) => {
-		dfd.reject(err);
+	return new Promise((resolve, reject) => {
+		this._getClassifier().then((classifier) => {
+			resolve(classifier);
+		}).catch((err) => {
+			reject(err);
+		});
 	});
-
-	return dfd.promise;
 };
 
 /**
@@ -98,37 +101,85 @@ NLCManager.prototype.classifierList = function(){
 
 
 /**
+ * Get information about the curent classifier
+ *
+ * @return Promise
+ */
+NLCManager.prototype.currentClassifier = function(){
+	return this._getClassifier(true);
+};
+
+/**
  * Returns classification data for a statement using the latest classifier available.
  *
  * @param  String	text	Natural Language statement to be classified.
  * @return JSON      		Classification data from Watson Natural Language Classifier.
  */
 NLCManager.prototype.classify = function(text){
-	var dfd = Promise.defer();
-	this._getClassifier().then((classifier) => {
-		logger.info('Using classifier %s', JSON.stringify(classifier));
-		if (classifier.status === 'Training'){
-			dfd.resolve(classifier);
-		}
-		else {
-			this.nlc.classify({
-				text: text,
-				classifier_id: classifier.classifier_id },
-				(err, response) => {
-					if (err) {
-						this.classifier_cache = undefined;
-						dfd.reject(err);
+	return new Promise((resolve, reject) => {
+		this._getClassifier().then((classifier) => {
+			logger.info('Using classifier %s', JSON.stringify(classifier));
+			if (classifier.status === 'Training'){
+				resolve(classifier);
+			}
+			else {
+				this.nlc.classify({
+					text: text,
+					classifier_id: classifier.classifier_id },
+					(err, response) => {
+						if (err) {
+							this.classifier_cache = undefined;
+							reject(err);
+						}
+						else {
+							resolve(response);
+						}
+					});
+			}
+		}).catch((err) => {
+			this.classifier_cache = undefined;
+			reject(err);
+		});
+	});
+};
+
+
+/**
+ * Gets data used to train the classifier with classifierId.
+ *
+ * @param  String	classifierId
+ * @return Promise  JSON			Sample result:	{"className": ["Text 1.", "Text 2"]}
+ */
+NLCManager.prototype.getClassifierData = function(classifierId){
+	logger.debug(`${TAG} Requested data used to train NLC with clasifierId=${classifierId}`);
+	return new Promise((resolve, reject) => {
+		return nlcDb.open().then((db) => {
+			return db.get(classifierId).then((doc) => {
+				csvParse(doc.trainedData, function(err, jsonData){
+					if (err){
+						logger.error(`${TAG}: Error parsing CSV data used to train NLC with clasifierId=${classifierId}`, err);
+						reject(err);
 					}
 					else {
-						dfd.resolve(response);
+						// Sort data by className for better display.
+						let result = {};
+						jsonData.forEach((trainingRecord) => {
+							for (let i = 1; i < trainingRecord.length; i++){
+								let texts = result[trainingRecord[i]] || [];
+								texts.push(trainingRecord[0]);
+								result[trainingRecord[i]] = texts;
+							}
+						});
+						logger.debug(`${TAG}: Data used to train NLC with classifierId=${classifierId}`, result);
+						resolve(result);
 					}
 				});
-		}
-	}).catch((err) => {
-		this.classifier_cache = undefined;
-		dfd.reject(err);
+			});
+		}).catch((err) => {
+			logger.error(`Error retrieving data used to train classifier ${classifierId}`, err);
+			reject(`Error retrieving data used to train classifier ${classifierId}`, err);
+		});
 	});
-	return dfd.promise;
 };
 
 
@@ -142,6 +193,7 @@ NLCManager.prototype._startTraining = function(){
 		if (this.classifierTraining) {
 			resolve(this.classifierTraining);
 		}
+		// Training with data initialized in opts.
 		else if (this.opts.training_data) {
 			let params = {
 				language: this.opts.classifierLanguage,
@@ -149,39 +201,32 @@ NLCManager.prototype._startTraining = function(){
 				training_data: this.opts.training_data
 			};
 
-			this.nlc.create(params, (err, response) => {
-				if (err) {
-					reject('Error creating classifier from provided training_data:' + JSON.stringify(err, null, 2));
-				}
-				else {
-					this.classifierTraining = response;
-					resolve(response);
-				}
+			this._createClassifier(params).then((result) => {
+				resolve(result);
+			}).catch((err) => {
+				reject(err);
 			});
 		}
+
+		// Training data from PouchDB.
 		else {
 			return nlcDb.open().then((db) => {
-				return db.getClasses();
-			})
-			.then((csvInput) => {
-				stringify(csvInput, (err, csvStream) => {
-					if (err){
-						reject('Error generating training data in csv format.');
-					}
-
-					let params = {
-						language: this.opts.classifierLanguage,
-						name: this.opts.classifierName,
-						training_data: csvStream
-					};
-
-					this.nlc.create(params, (err, response) => {
-						if (err) {
-							reject('Error creating classifier from nlcDb:' + JSON.stringify(err, null, 2));
+				return db.getClasses().then((csvInput) => {
+					stringify(csvInput, (err, csvStream) => {
+						if (err){
+							logger.error(`${TAG}: Error generating training data in csv format.`, err);
+							reject('Error generating training data in csv format.');
 						}
 						else {
-							this.classifierTraining = response;
-							resolve(response);
+							let params = {
+								language: this.opts.classifierLanguage,
+								name: this.opts.classifierName,
+								training_data: csvStream
+							};
+
+							return this._createClassifier(params).then((result) => {
+								resolve(result);
+							});
 						}
 					});
 				});
@@ -192,6 +237,48 @@ NLCManager.prototype._startTraining = function(){
 	});
 };
 
+
+/**
+ * Helper method that creates an NLC instance and saves the data used for training for future reference.
+ *
+ * @param  Object 	params 	Parameters for the Watson NLC service.
+ * @return Object        	Result from Watson NLC service.
+ */
+NLCManager.prototype._createClassifier = function(params){
+	return new Promise((resolve, reject) => {
+		this.nlc.create(params, (err, response) => {
+			if (err) {
+				logger.error(`${TAG}: Error creating classifier.`, err);
+				reject('Error creating classifier' + JSON.stringify(err, null, 2));
+			}
+			else {
+				this.classifierTraining = response;
+
+				if (this.opts.saveTrainingData) {
+					logger.debug(`${TAG}: Saving NLC trained data for ${response.classifier_id}`);
+					return nlcDb.open().then((db) => {
+						let doc = {
+							_id: response.classifier_id,
+							type: 'classifier_data',
+							trainedData: params.training_data
+						};
+						return db.createOrUpdate(doc).then(() => {
+							logger.debug(`${TAG}: Saved NLC trained data for ${response.classifier_id}`);
+							resolve(response);
+						});
+					}).catch((error) => {
+						logger.error(`${TAG}: Error saving NLC trained data for ${response.classifier_id}`, error);
+						resolve(response); // Resolve promise; don't fail because of DB errors.
+					});
+				}
+				else {
+					resolve(response);
+				}
+			}
+		});
+	});
+};
+
 /**
  * Internal method to poll for classifier status.
  *
@@ -199,38 +286,39 @@ NLCManager.prototype._startTraining = function(){
  * @return Promise               	Resolved when training completes. Returns the classifier settings/status. Errors if traininf fails.
  */
 NLCManager.prototype._monitor = function(classifier_id){
-	var dfd = Promise.defer();
-
-	const checkAvailable = (dfd) => {
-		logger.info(`Checking status of classifier ${classifier_id}`);
-		this.nlc.status({classifier_id: classifier_id}, (err, status) => {
-			if (err){
-				dfd.reject('Error getting status for classifier in training.');
-			}
-			else {
-				logger.info(`Status of classifier ${classifier_id} is ${status.status}.`);
-				if (status.status === 'Training'){
-					setTimeout(() => {
-						checkAvailable(dfd);
-					}, 1000 * 60);
-				}
-				else if (status.status === 'Available'){
-					this.classifierTraining = undefined;
-					this.classifier_cache = status;
-					this._deleteOldClassifiers().then((result) => {
-						logger.info('Deleted old classifier', result);
-						dfd.resolve(status);
-					});
+	return new Promise((resolve, reject) => {
+		const checkAvailable = (resolve, reject) => {
+			logger.info(`Checking status of classifier ${classifier_id}`);
+			this.nlc.status({classifier_id: classifier_id}, (err, status) => {
+				if (err){
+					reject('Error getting status for classifier in training.');
 				}
 				else {
-					dfd.reject(status);
+					logger.info(`Status of classifier ${classifier_id} is ${status.status}.`);
+					if (status.status === 'Training'){
+						setTimeout(() => {
+							checkAvailable(resolve, reject);
+						}, 1000 * 60);
+					}
+					else if (status.status === 'Available'){
+						this.classifierTraining = undefined;
+						this.classifier_cache = status;
+						this._deleteOldClassifiers().then((result) => {
+							logger.info('Deleted classifier', result);
+							resolve(status);
+						}).catch((err) => {
+							logger.error(`${TAG}: Error deleting classifier ${status.classifier_id}`);
+							reject(err);
+						});
+					}
+					else {
+						reject(status);
+					}
 				}
-			}
-		});
-	};
-	checkAvailable(dfd);
-
-	return dfd.promise;
+			});
+		};
+		checkAvailable(resolve, reject);
+	});
 };
 
 /**
@@ -239,42 +327,56 @@ NLCManager.prototype._monitor = function(classifier_id){
  * @return Promise Resolves when classifiers have been deleted.
  */
 NLCManager.prototype._deleteOldClassifiers = function(){
-	var dfd = Promise.defer();
-	this.nlc.list({}, (err, response) => {
-		if (err) {
-			dfd.reject('Error getting available classifiers. ' + JSON.stringify(err, null, 2));
-		}
-		else {
-			var sortedClassifiers = response.classifiers.sort((a, b) => {
-				return new Date(b.created) - new Date(a.created);
-			});
-
-			var filteredClassifiers = sortedClassifiers.filter((classifier) => {
-				return classifier.name === this.opts.classifierName;
-			});
-
-			if (filteredClassifiers.length > this.opts.maxClassifiers) {
-				logger.info(`Deleting classifier ${filteredClassifiers[filteredClassifiers.length - 1].classifier_id}`);
-				this.nlc.remove({classifier_id: filteredClassifiers[filteredClassifiers.length - 1].classifier_id}, (err, result) => {
-					if (err){
-						dfd.reject('Error deleting classifier: ' + JSON.stringify(err, null, 2));
-					}
-					else {
-						logger.info('Deleted classifier', filteredClassifiers[filteredClassifiers.length - 1].classifier_id);
-						this._deleteOldClassifiers().then((result) => {
-							dfd.resolve(result);
-						}).catch((err) => {
-							dfd.reject(err);
-						});
-					}
-				});
+	return new Promise((resolve, reject) => {
+		this.nlc.list({}, (err, response) => {
+			if (err) {
+				reject('Error getting available classifiers. ' + JSON.stringify(err, null, 2));
 			}
 			else {
-				dfd.resolve();
+				var sortedClassifiers = response.classifiers.sort((a, b) => {
+					return new Date(b.created) - new Date(a.created);
+				});
+
+				var filteredClassifiers = sortedClassifiers.filter((classifier) => {
+					return classifier.name === this.opts.classifierName;
+				});
+
+				if (filteredClassifiers.length > this.opts.maxClassifiers) {
+					let deleteClassifierId = filteredClassifiers[filteredClassifiers.length - 1].classifier_id;
+					logger.debug(`Deleting classifier ${deleteClassifierId}`);
+
+					this.nlc.remove({classifier_id: deleteClassifierId}, (err, result) => {
+						if (err){
+							reject('Error deleting classifier: ' + JSON.stringify(err, null, 2));
+						}
+						else {
+							logger.info('Deleted classifier', filteredClassifiers[filteredClassifiers.length - 1].classifier_id);
+
+							nlcDb.open().then((db) => {
+								return db.get(deleteClassifierId).then((doc) => {
+									doc._deleted = true;
+									return db.put(doc).then(() => {
+										logger.info(`${TAG}: Deleted DB classifier training data for ${deleteClassifierId}`);
+									});
+								});
+							}).catch((error) => {
+								logger.error(`${TAG}: Error deleting DB classifier data for ${deleteClassifierId}`, error);
+							});
+
+							this._deleteOldClassifiers().then((result) => {
+								resolve(result);
+							}).catch((err) => {
+								reject(err);
+							});
+						}
+					});
+				}
+				else {
+					resolve();
+				}
 			}
-		}
+		});
 	});
-	return dfd.promise;
 };
 
 
@@ -287,88 +389,88 @@ NLCManager.prototype._deleteOldClassifiers = function(){
  * @return Promise When resolved it returns a JSON object with the classifier information.
  */
 NLCManager.prototype._getClassifier = function(doNotTrain){
-	var dfd = Promise.defer();
+	return new Promise((resolve, reject) => {
 
-	if (this.classifier_cache){
-		logger.debug(`Using cached NLC classifier ${this.classifier_cache.classifier_id}`);
-		dfd.resolve(this.classifier_cache);
-	}
-	else {
-		this.nlc.list({}, (err, response) => {
-			if (err) {
-				dfd.reject('Error getting available classifiers.' + JSON.stringify(err, null, 2));
-			}
-			else {
-				var filteredClassifiers = response.classifiers.filter((classifier) => {
-					return classifier.name === this.opts.classifierName;
-				});
+		if (this.classifier_cache){
+			logger.debug(`Using cached NLC classifier ${this.classifier_cache.classifier_id}`);
+			resolve(this.classifier_cache);
+		}
+		else {
+			this.nlc.list({}, (err, response) => {
+				if (err) {
+					reject('Error getting available classifiers.' + JSON.stringify(err, null, 2));
+				}
+				else {
+					var filteredClassifiers = response.classifiers.filter((classifier) => {
+						return classifier.name === this.opts.classifierName;
+					});
 
-				if (filteredClassifiers.length < 1){
-					if (doNotTrain) {
-						dfd.reject(`No classifiers found under [${this.opts.classifierName}]`);
+					if (filteredClassifiers.length < 1){
+						if (doNotTrain) {
+							reject(`No classifiers found under [${this.opts.classifierName}]`);
+						}
+						else {
+							// no classifiers found by this name, so create one and start training.
+							logger.info(`No classifiers found with name ${this.opts.classifierName}. Creating and training a new one.`);
+							this._startTraining().then((result) => {
+								resolve(result);
+							}).catch((err) => {
+								reject(err);
+							});
+						}
 					}
 					else {
-						// no classifiers found by this name, so create one and start training.
-						logger.info(`No classifiers found with name ${this.opts.classifierName}. Creating and training a new one.`);
-						this._startTraining().then((result) => {
-							dfd.resolve(result);
-						}).catch((err) => {
-							dfd.reject(err);
+						// try to find the most recent available.  or most recent that started training.
+						var sortedClassifiers = filteredClassifiers.sort((a, b) => {
+							return new Date(b.created) - new Date(a.created);
+						});
+
+						var checkStatus = [];
+						sortedClassifiers.map((classifier) => {
+							checkStatus.push(this._getClassifierStatus(classifier.classifier_id));
+						});
+
+						Promise.all(checkStatus).then((classifierStatus) => {
+
+							this.classifierTraining = undefined;
+							for (var i = 0; i < sortedClassifiers.length; i++){
+								if (sortedClassifiers[i].name === this.opts.classifierName){
+									if (classifierStatus[i].status === 'Available'){
+										this.classifier_cache = classifierStatus[i];
+										resolve(classifierStatus[i]);
+										return;
+									}
+									else if (classifierStatus[i].status === 'Training' && !this.classifierTraining){
+										this.classifierTraining = classifierStatus[i];
+									}
+								}
+							}
+
+							if (this.classifierTraining){
+								resolve(this.classifierTraining);
+							}
+							else {
+								if (doNotTrain) {
+									reject(`No classifiers available under [${this.opts.classifierName}]`);
+								}
+								else {
+									// none are available or training, start training one.
+									logger.info(`No classifiers with name ${this.opts.classifierName} are avilable or in training. Start training a new one.`);
+									this._startTraining().then((result) => {
+										resolve(result);
+									}).catch((err) => {
+										reject(err);
+									});
+								}
+							}
+						}).catch((error) => {
+							reject('Error getting a classifier.' + JSON.stringify(error));
 						});
 					}
 				}
-				else {
-					// try to find the most recent available.  or most recent that started training.
-					var sortedClassifiers = filteredClassifiers.sort((a, b) => {
-						return new Date(b.created) - new Date(a.created);
-					});
-
-					var checkStatus = [];
-					sortedClassifiers.map((classifier) => {
-						checkStatus.push(this._getClassifierStatus(classifier.classifier_id));
-					});
-
-					Promise.all(checkStatus).then((classifierStatus) => {
-
-						this.classifierTraining = undefined;
-						for (var i = 0; i < sortedClassifiers.length; i++){
-							if (sortedClassifiers[i].name === this.opts.classifierName){
-								if (classifierStatus[i].status === 'Available'){
-									this.classifier_cache = classifierStatus[i];
-									dfd.resolve(classifierStatus[i]);
-									return;
-								}
-								else if (classifierStatus[i].status === 'Training' && !this.classifierTraining){
-									this.classifierTraining = classifierStatus[i];
-								}
-							}
-						}
-
-						if (this.classifierTraining){
-							dfd.resolve(this.classifierTraining);
-						}
-						else {
-							if (doNotTrain) {
-								dfd.reject(`No classifiers available under [${this.opts.classifierName}]`);
-							}
-							else {
-								// none are available or training, start training one.
-								logger.info(`No classifiers with name ${this.opts.classifierName} are avilable or in training. Start training a new one.`);
-								this._startTraining().then((result) => {
-									dfd.resolve(result);
-								}).catch((err) => {
-									dfd.reject(err);
-								});
-							}
-						}
-					}).catch((error) => {
-						dfd.reject('Error getting a classifier.' + JSON.stringify(error));
-					});
-				}
-			}
-		});
-	}
-	return dfd.promise;
+			});
+		}
+	});
 };
 
 /**
@@ -378,30 +480,30 @@ NLCManager.prototype._getClassifier = function(doNotTrain){
  * @return Promise       			When resolved returns the classifier data.
  */
 NLCManager.prototype._getClassifierStatus = function(classifier_id){
-	var dfd = Promise.defer();
-	if (classifier_id) {
-		this.nlc.status({classifier_id: classifier_id}, (err, status) => {
-			if (err){
-				dfd.reject('Error while checking status of classifier ' + classifier_id + JSON.stringify(err, null, 2));
-			}
-			else {
-				// If classifier is Training, record it's training duration
-				if (status.status === 'Training') {
-					var duration = Math.floor((Date.now() - new Date(status.created)) / 60000);
-					status.duration = duration > 0 ? duration : 0;
+	return new Promise((resolve, reject) => {
+		if (classifier_id) {
+			this.nlc.status({classifier_id: classifier_id}, (err, status) => {
+				if (err){
+					reject('Error while checking status of classifier ' + classifier_id + JSON.stringify(err, null, 2));
 				}
-				dfd.resolve(status);
-			}
-		});
-	}
-	else {
-		this._getClassifier(true).then(function(status) {
-			dfd.resolve(status);
-		}).catch(function(err) {
-			dfd.reject(err);
-		});
-	}
-	return dfd.promise;
+				else {
+					// If classifier is Training, record it's training duration
+					if (status.status === 'Training') {
+						var duration = Math.floor((Date.now() - new Date(status.created)) / 60000);
+						status.duration = duration > 0 ? duration : 0;
+					}
+					resolve(status);
+				}
+			});
+		}
+		else {
+			this._getClassifier(true).then(function(status) {
+				resolve(status);
+			}).catch(function(err) {
+				reject(err);
+			});
+		}
+	});
 };
 
 /**
@@ -410,33 +512,32 @@ NLCManager.prototype._getClassifierStatus = function(classifier_id){
  * @return Promise When resolved it returns an array of JSON objects with each classifier's information.
  */
 NLCManager.prototype._getClassifierList = function(){
-	var dfd = Promise.defer();
-
-	this.nlc.list({}, (err, response) => {
-		if (err) {
-			dfd.reject('Error getting list of classifiers.' + JSON.stringify(err, null, 2));
-		}
-		else {
-			var checkStatus = [];
-			response.classifiers.map((classifier) => {
-				checkStatus.push(this._getClassifierStatus(classifier.classifier_id));
-			});
-
-			Promise.all(checkStatus).then((classifiers) => {
-				// Sort by latest created; first Available classifiers, then Training
-				var sortedClassifiers = classifiers.sort((a, b) => {
-					if (a.status !== b.status) {
-						return a.status === 'Available' ? -1 : 1;
-					}
-					return new Date(b.created) - new Date(a.created);
+	return new Promise((resolve, reject) => {
+		this.nlc.list({}, (err, response) => {
+			if (err) {
+				reject('Error getting list of classifiers.' + JSON.stringify(err, null, 2));
+			}
+			else {
+				var checkStatus = [];
+				response.classifiers.map((classifier) => {
+					checkStatus.push(this._getClassifierStatus(classifier.classifier_id));
 				});
-				dfd.resolve(sortedClassifiers);
-			}).catch((err) => {
-				dfd.reject('Error getting list of classifiers.' + JSON.stringify(err, null, 2));
-			});
-		}
+
+				Promise.all(checkStatus).then((classifiers) => {
+					// Sort by latest created; first Available classifiers, then Training
+					var sortedClassifiers = classifiers.sort((a, b) => {
+						if (a.status !== b.status) {
+							return a.status === 'Available' ? -1 : 1;
+						}
+						return new Date(b.created) - new Date(a.created);
+					});
+					resolve(sortedClassifiers);
+				}).catch((err) => {
+					reject('Error getting list of classifiers.' + JSON.stringify(err, null, 2));
+				});
+			}
+		});
 	});
-	return dfd.promise;
 };
 
 module.exports = NLCManager;

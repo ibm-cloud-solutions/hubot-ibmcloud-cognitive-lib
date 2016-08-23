@@ -46,6 +46,7 @@
     "index.js"
   ],
   "dependencies": {
+    "csv-parse": "^1.1.7",
     "csv-stringify": "^1.0.4",
     "lodash": "^4.13.1",
     "pos": "^0.3.0",
