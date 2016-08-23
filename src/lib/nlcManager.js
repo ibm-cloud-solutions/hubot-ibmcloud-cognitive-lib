@@ -24,6 +24,7 @@ const logger = require('./logger');
  *        options.classifierName = Watson NLC classifier name (OPTIONAL, defaults to 'default-classifier')
  *        options.maxClassifiers = Maximum number of classifiers with name 'classifierName', will delete classifiers exceding this num (OPTIONAL, defaults to 3)
  *        options.training_data = ReadStream, typically created from a CSV file.  (OPTIONAL, if omitted training data will come from nlcDb)
+ *        options.saveTrainingData = Saves data used to train the classifier (OPTIONAL, defaults to true)
  * @constructor
  */
 function NLCManager(options) {
@@ -32,6 +33,7 @@ function NLCManager(options) {
 	this.opts.classifierName = options.classifierName || 'default-classifier';
 	this.opts.maxClassifiers = options.maxClassifiers || 3;
 	this.opts.classifierLanguage = options.language || 'en';
+	this.opts.saveTrainingData = options.saveTrainingData || true;
 
 	this.nlc = watson.natural_language_classifier(this.opts);
 }
@@ -249,21 +251,27 @@ NLCManager.prototype._createClassifier = function(params){
 			}
 			else {
 				this.classifierTraining = response;
-				logger.debug(`${TAG}: Saving NLC trained data for ${response.classifier_id}`);
-				return nlcDb.open().then((db) => {
-					let doc = {
-						_id: response.classifier_id,
-						type: 'classifier_data',
-						trainedData: params.training_data
-					};
-					return db.createOrUpdate(doc).then(() => {
-						logger.debug(`${TAG}: Saved NLC trained data for ${response.classifier_id}`);
-						resolve(response);
+
+				if (this.opts.saveTrainingData) {
+					logger.debug(`${TAG}: Saving NLC trained data for ${response.classifier_id}`);
+					return nlcDb.open().then((db) => {
+						let doc = {
+							_id: response.classifier_id,
+							type: 'classifier_data',
+							trainedData: params.training_data
+						};
+						return db.createOrUpdate(doc).then(() => {
+							logger.debug(`${TAG}: Saved NLC trained data for ${response.classifier_id}`);
+							resolve(response);
+						});
+					}).catch((error) => {
+						logger.error(`${TAG}: Error saving NLC trained data for ${response.classifier_id}`, error);
+						resolve(response); // Resolve promise; don't fail because of DB errors.
 					});
-				}).catch((error) => {
-					logger.error(`${TAG}: Error saving NLC trained data for ${response.classifier_id}`, error);
-					resolve(response); // Resolve promise because the error happened saving to the DB.
-				});
+				}
+				else {
+					resolve(response);
+				}
 			}
 		});
 	});
@@ -331,13 +339,27 @@ NLCManager.prototype._deleteOldClassifiers = function(){
 			});
 
 			if (filteredClassifiers.length > this.opts.maxClassifiers) {
-				logger.debug(`Deleting classifier ${filteredClassifiers[filteredClassifiers.length - 1].classifier_id}`);
-				this.nlc.remove({classifier_id: filteredClassifiers[filteredClassifiers.length - 1].classifier_id}, (err, result) => {
+				let deleteClassifierId = filteredClassifiers[filteredClassifiers.length - 1].classifier_id;
+				logger.debug(`Deleting classifier ${deleteClassifierId}`);
+
+				this.nlc.remove({classifier_id: deleteClassifierId}, (err, result) => {
 					if (err){
 						dfd.reject('Error deleting classifier: ' + JSON.stringify(err, null, 2));
 					}
 					else {
 						logger.info('Deleted classifier', filteredClassifiers[filteredClassifiers.length - 1].classifier_id);
+
+						nlcDb.open().then((db) => {
+							db.get(deleteClassifierId).then((doc) => {
+								doc._deleted = true;
+								db.put(doc).then(() => {
+									logger.info(`${TAG}: Deleted DB classifier training data for ${deleteClassifierId}`);
+								});
+							});
+						}).catch((error) => {
+							logger.error(`${TAG}: Error deleting DB classifier data for ${deleteClassifierId}`, error);
+						});
+
 						this._deleteOldClassifiers().then((result) => {
 							dfd.resolve(result);
 						}).catch((err) => {
