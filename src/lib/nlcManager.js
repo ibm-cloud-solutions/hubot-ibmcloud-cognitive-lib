@@ -304,8 +304,11 @@ NLCManager.prototype._monitor = function(classifier_id){
 						this.classifierTraining = undefined;
 						this.classifier_cache = status;
 						this._deleteOldClassifiers().then((result) => {
-							logger.info('Deleted old classifier', result);
+							logger.info('Deleted classifier', result);
 							resolve(status);
+						}).catch((err) => {
+							logger.error(`${TAG}: Error deleting classifier ${status.classifier_id}`);
+							reject(err);
 						});
 					}
 					else {
