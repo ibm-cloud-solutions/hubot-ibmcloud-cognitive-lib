@@ -101,6 +101,15 @@ NLCManager.prototype.classifierList = function(){
 
 
 /**
+ * Get information about the curent classifier
+ *
+ * @return Promise
+ */
+NLCManager.prototype.currentClassifier = function(){
+	return this._getClassifier(true);
+};
+
+/**
  * Returns classification data for a statement using the latest classifier available.
  *
  * @param  String	text	Natural Language statement to be classified.

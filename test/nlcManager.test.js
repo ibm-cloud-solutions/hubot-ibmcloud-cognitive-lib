@@ -79,6 +79,14 @@ describe('Test the NLCManager library', function(){
 		});
 	});
 
+	it('should successfully get the current classifier', function(done){
+		watson_nlc.currentClassifier().then(function(result){
+			expect(result.name).to.be.eql('test-classifier');
+			expect(result.classifier_id).to.be.eql('cd02b5x110-nlc-5110');
+			done();
+		});
+	});
+
 	describe('Negative tests', function(){
 		it('should fail getting the status of classifier', function(done){
 			watson_nlc.classifierStatus('classifier-id-0000').catch(function(error){
