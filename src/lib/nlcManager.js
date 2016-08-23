@@ -33,7 +33,7 @@ function NLCManager(options) {
 	this.opts.classifierName = options.classifierName || 'default-classifier';
 	this.opts.maxClassifiers = options.maxClassifiers || 3;
 	this.opts.classifierLanguage = options.language || 'en';
-	this.opts.saveTrainingData = options.saveTrainingData || true;
+	this.opts.saveTrainingData = options.saveTrainingData === false ? options.saveTrainingData : true;
 
 	this.nlc = watson.natural_language_classifier(this.opts);
 }
@@ -162,18 +162,19 @@ NLCManager.prototype.getClassifierData = function(classifierId){
 						logger.error(`${TAG}: Error parsing CSV data used to train NLC with clasifierId=${classifierId}`, err);
 						reject(err);
 					}
-
-					// Sort data by className for better display.
-					let result = {};
-					jsonData.forEach((trainingRecord) => {
-						for (let i = 1; i < trainingRecord.length; i++){
-							let texts = result[trainingRecord[i]] || [];
-							texts.push(trainingRecord[0]);
-							result[trainingRecord[i]] = texts;
-						}
-					});
-					logger.debug(`${TAG}: Data used to train NLC with classifierId=${classifierId}`, result);
-					resolve(result);
+					else {
+						// Sort data by className for better display.
+						let result = {};
+						jsonData.forEach((trainingRecord) => {
+							for (let i = 1; i < trainingRecord.length; i++){
+								let texts = result[trainingRecord[i]] || [];
+								texts.push(trainingRecord[0]);
+								result[trainingRecord[i]] = texts;
+							}
+						});
+						logger.debug(`${TAG}: Data used to train NLC with classifierId=${classifierId}`, result);
+						resolve(result);
+					}
 				});
 			});
 		}).catch((err) => {
@@ -204,28 +205,31 @@ NLCManager.prototype._startTraining = function(){
 
 			this._createClassifier(params).then((result) => {
 				resolve(result);
+			}).catch((err) => {
+				reject(err);
 			});
 		}
 
 		// Training data from PouchDB.
 		else {
-			return nlcDb.open().then((db) => {
-				return db.getClasses().then((csvInput) => {
+			nlcDb.open().then((db) => {
+				db.getClasses().then((csvInput) => {
 					stringify(csvInput, (err, csvStream) => {
 						if (err){
 							logger.error(`${TAG}: Error generating training data in csv format.`, err);
 							reject('Error generating training data in csv format.');
 						}
+						else {
+							let params = {
+								language: this.opts.classifierLanguage,
+								name: this.opts.classifierName,
+								training_data: csvStream
+							};
 
-						let params = {
-							language: this.opts.classifierLanguage,
-							name: this.opts.classifierName,
-							training_data: csvStream
-						};
-
-						this._createClassifier(params).then((result) => {
-							resolve(result);
-						});
+							this._createClassifier(params).then((result) => {
+								resolve(result);
+							});
+						}
 					});
 				});
 			}).catch((error) => {
