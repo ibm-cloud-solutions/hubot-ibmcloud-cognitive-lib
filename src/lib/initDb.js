@@ -67,6 +67,9 @@ exports.init = function(nlcFile){
 												}
 											}
 										}
+										if (p.entityfunction) {
+											p.entityfunction = `${name}_${p.entityfunction}`;
+										}
 									}
 								}
 								dfnObj.parameters = cls.parameters;
