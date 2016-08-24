@@ -8,6 +8,20 @@
 
 const nlcDb = require('./nlcDb');
 
+const NLCCONFIG_KEY = Symbol.for('hubot-ibmcloud-cognitive-lib-nlcconfig');
+
+var globalSymbols = Object.getOwnPropertySymbols(global);
+if (globalSymbols.indexOf(NLCCONFIG_KEY) < 0) {
+	global[NLCCONFIG_KEY] = {};
+}
+
+var singleton = {};
+Object.defineProperty(singleton, 'instance', {
+	get: function(){
+		return global[NLCCONFIG_KEY];
+	}
+});
+
 /**
  * Return array of class definitions for all classes (emit target, textfile, and parameters).
  *
@@ -54,4 +68,18 @@ exports.getAutoApprove = function(){
 */
 exports.setAutoApprove = function(value){
 	return nlcDb.setAutoApprove(value);
+};
+
+/**
+ * Sets entity function definitions.
+ */
+exports.setGlobalEntityFunction = function(name, entityFunction){
+	singleton.instance[name] = entityFunction;
+};
+
+/**
+ * Returns entity function definitions.
+ */
+exports.getGlobalEntityFunction = function(name){
+	return singleton.instance[name];
 };

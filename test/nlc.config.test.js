@@ -89,4 +89,20 @@ describe('Testing NLC Configuration', function() {
 			nlcconfig.setAutoApprove(true);
 		});
 	});
+
+	context('Verify entity function setter/getter', function() {
+
+		function testFunc(paramName, parameters) {
+			return ['value1', 'value2', 'value3'];
+		}
+
+		it('Verify entity function setter/getter correct value', function() {
+			nlcconfig.setGlobalEntityFunction('testfunc', testFunc);
+			let retFunc = nlcconfig.getGlobalEntityFunction('testfunc');
+			expect(typeof (retFunc)).to.eql('function');
+			let retFuncResult = testFunc(null, null);
+			expect(retFuncResult.length).to.eql(3);
+			expect(retFuncResult[0]).to.eql('value1');
+		});
+	});
 });
