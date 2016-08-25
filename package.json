@@ -20,7 +20,6 @@
     "nlc",
     "natural language",
     "watson natural language classifier",
-    "parameter extraction",
     "ibm cloud",
     "hubot",
     "hubot utilities",
@@ -48,8 +47,6 @@
   "dependencies": {
     "csv-parse": "^1.1.7",
     "csv-stringify": "^1.0.4",
-    "lodash": "^4.13.1",
-    "pos": "^0.3.0",
     "pouchdb": "^5.4.5",
     "pouchdb-memory": "^1.1.0",
     "string-length": "^1.0.1",

@@ -8,6 +8,5 @@
 
 module.exports.nlcconfig = require('./src/lib/nlcconfig');
 module.exports.nlcManager = require('./src/lib/nlcManager');
-module.exports.paramManager = require('./src/lib/paramManager');
 module.exports.hubotPouch = require('./src/lib/hubotPouch');
 module.exports.nlcDb = require('./src/lib/nlcDb');

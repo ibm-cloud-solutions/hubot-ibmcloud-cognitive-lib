@@ -51,9 +51,6 @@ HUBOT_WATSON_NLC_USERNAME
 HUBOT_WATSON_NLC_PASSWORD
 HUBOT_WATSON_NLC_CLASSIFIER (optional, defaults to default-hubot-classifier)
 HUBOT_WATSON_NLC_AUTO_APPROVE (optional, defaults to false)
-HUBOT_WATSON_ALCHEMY_URL (optional, required to pull city parameter values from statement)
-HUBOT_WATSON_ALCHEMY_APIKEY (optional, required to pull city parameter values from statement)
-HUBOT_WATSON_ALCHEMY_DATASET (optional, required to pull city parameter values from statement)
 HUBOT_CLOUDANT_ENDPOINT (optional, default to null)
 HUBOT_CLOUDANT_KEY (optional, default to null)
 HUBOT_CLOUDANT_PASSWORD (optional, default to null)
@@ -62,7 +59,6 @@ HUBOT_DB_DIRECTORY (defaults to 'databases')
 SYNC_INTERVAL (defaults to 30 minutes, this value is set in millseconds)
 CONFIDENCE_THRESHOLD_HIGH (defaults to 0.8)
 CONFIDENCE_THRESHOLD_LOW (defaults to 0.05)
-PARAM_PARSING_DISABLED (defaults to false, but should be set to true if parameter processing is not desired)
 HUBOT_DB_TEST (defaults to false, but should be set to null if running in same shell as the tests which overrides this setting)
 ```
 __Note:__ Usage of `HUBOT_WATSON_NLC_AUTO_APPROVE` could have potential negative effects. Auto-approving the classified statements if they include keywords/entities could cause incorrect classifications for other command usages in the future.
@@ -91,6 +87,7 @@ To create a class with a set of suggested natural language statements, an emit t
 			"parameters": [
 				{
 					"name": "parameter-name",  
+					"title": "readable parameter name",
 					"type": "type-of-parameter",
 					"values": [ "value1", "value2" ],
 					"prompt": "OK. What is the parameter value you want me to use?"
@@ -122,12 +119,27 @@ To create a class with a set of suggested natural language statements, an emit t
 
 Within the `parameters` object `name` is a required field and gives the name for this parameter.
 
+Within the `parameters` object `title` is an optional field and gives the displayable name for this parameter.
+
 Within the `parameters` object `type` is a required field and gives a predefined type, this should be one of
 (`entity`, `keyword`, `number`, `repourl`, `repouser`, `reponame`, `city`) but this restriction is not enforced.
 
 Within the `parameters` object `values` is an optional list of values to associate with the parameter name (applies to `entity` and `keyword` types).
 
 Within the `parameters` object `prompt` is an optional field.  If a value for the parameter can not be determined through normal processing, this prompt could be used to ask the user for the specific parameter value.
+
+Within the `parameters` object `entityfunction` is an optional field (applies to `entity` types).  It specifies the name of a registered entity function that is invoked to obtain the latest, most complete set of entity values for the parameter.  This allows a fuzzy match on entity values.
+
+The entity function is registered at runtime.  The name it is registered with is namespaced.  Assume `n1` is the root `name` configured in the json file.  If the `entityfunction` field name is `f1`, then the entity function is registered with the name `n1_f1`.  To register the entity function at runtime, add a statement similar to the following:
+
+```
+nlcconfig.setGlobalEntityFunction('n1_f1', function(robot, res, parameterName, parameters) {
+	return new Promise(function(resolve, reject) {	// Always return a Promise
+		... obtain parameter value for parameterName
+		resolve(parameterValue);
+	});
+});
+```
 
 Within the `parameters` object `required` is an optional field indicating whether the value for the parameter is required.  The default is true.
 
@@ -138,7 +150,7 @@ Within the `parameter.values` object `name` is a required field and gives the na
 Within the `parameters.values` object `values` is a required list of values to associate with the parameter name (applies to `entity` and `keyword` types).
 
 It is also possible to set global parameter values at runtime.  If this is going to be done, then a `parameter.values` object should be configured in the json file with an empty list.
-`parameter.values` is namespaced with the `name` (denoted `n1`) at the root of the JSON structure used with the `name` (denoted `n2`) in the `parameter.values` object as follows `n1_n2`. e.g. to update a parameter value.  To set the global parameter a runtime, add a statement similar to the following:
+`parameter.values` is namespaced with the `name` (denoted `n1`) at the root of the JSON structure used with the `name` (denoted `n2`) in the `parameter.values` object as follows `n1_n2`. e.g. to update a parameter value.  To set the global parameter at runtime, add a statement similar to the following:
 
 ```
 nlcconfig.updateGlobalParameterValues('n1_n2', ['aVal', 'anotherVal']);
@@ -201,6 +213,9 @@ These are functions used to read/write configuration data.
 1. `nlcconfig.updateGlobalParameterValues(name, values)`
 	- Update global parameter values for a parameters for the given name.  Note that the name is namespaced.  It should be the value of the root 'name' field in the json file contatenated with '_' and the parameter name.  After this is invoked, all parameters with the same name will contain the specified values.
 
+1. `nlcconfig.setGlobalEntityFunction(name, function)`
+	- Register entity function for the given name.  Note that the name is namespaced.  It should be the value of the root 'name' field in the json file contatenated with '_' and the entity function name.
+
 ### NLC Processing related functions (NLCManager)
 
 These are functions used to process a statement against the current NLC classifier and determine the best class to handle it.  It can also be used to trigger a training to create a new NLC classifier.
@@ -216,13 +231,6 @@ These are functions used to process a statement against the current NLC classifi
 
 1. `NLCManager.classify(text)`
 	- Returns the Watson NLC classification information for the given statement.  This includes information such as the top className and an array of potential className matches along with a confidence level and score.
-
-### Parameter Processing related functions (ParamManager)
-
-These are functions used to pull parameter values from a statement using the parameter definition.
-
-1. `ParamManager.getParameters(className, statement, classParameters)`
-	- Process the given statement using the given class parameter definitions to obtain parameter values.  A map object is returned with parameter-name / parameter-value pairs.  If the parameter value could not be found, the parameter-name is not in the map.
 
 ## License
 
