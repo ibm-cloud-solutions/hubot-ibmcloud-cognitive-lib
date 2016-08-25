@@ -13,9 +13,6 @@ const settings = {
 	nlc_password: process.env.VCAP_SERVICES_NATURAL_LANGUAGE_CLASSIFIER_0_CREDENTIALS_PASSWORD || process.env.HUBOT_WATSON_NLC_PASSWORD,
 	nlc_classifier: process.env.HUBOT_WATSON_NLC_CLASSIFIER || 'default-hubot-classifier',
 	nlc_autoApprove: process.env.HUBOT_WATSON_NLC_AUTO_APPROVE || false,
-	alchemy_url: process.env.VCAP_SERVICES_ALCHEMY_API_0_CREDENTIALS_URL || process.env.HUBOT_WATSON_ALCHEMY_URL,
-	alchemy_apikey: process.env.VCAP_SERVICES_ALCHEMY_API_0_CREDENTIALS_APIKEY || process.env.HUBOT_WATSON_ALCHEMY_APIKEY,
-	alchemy_dataset: process.env.HUBOT_WATSON_ALCHEMY_DATASET,
 	cloudantEndpoint: process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_HOST ? 'https://' + process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_HOST : process.env.HUBOT_CLOUDANT_ENDPOINT,
 	cloudantKey: process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_USERNAME || process.env.HUBOT_CLOUDANT_KEY,
 	cloudantPassword: process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_PASSWORD || process.env.HUBOT_CLOUDANT_PASSWORD,
@@ -28,7 +25,6 @@ const settings = {
 	test: process.env.HUBOT_DB_TEST || false,
 	version: 'v1',
 	suppressErrors: process.env.SUPPRESS_ERRORS || false,
-	paramParsingDisabled: process.env.PARAM_PARSING_DISABLED || false,
 	logLevel: process.env.COGNITIVE_LOG_LEVEL || 'error'
 };
 
@@ -52,13 +48,6 @@ if (!settings.nlc_password) {
 
 if (!settings.nlc_classifier) {
 	logger.error('HUBOT_WATSON_NLC_CLASSIFIER not set');
-}
-
-if (!settings.alchemy_url) {
-	logger.error('HUBOT_WATSON_ALCHEMY_URL');
-}
-if (!settings.alchemy_apikey) {
-	logger.error('HUBOT_WATSON_ALCHEMY_APIKEY');
 }
 
 
