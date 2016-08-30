@@ -50,7 +50,7 @@ describe('Testing initial load of database', function() {
 		it('should test database class responses with seed data from a JSON file format', function() {
 			assert(this.db, 'db should be initialized');
 			return this.db.getClassEmitTarget('app.list').then((tgt) => {
-				expect(tgt.target).to.eql('app.list.js');
+				expect(tgt.target).to.eql('app.list');
 				return this.db.getClassEmitTarget('app.start');
 			}).then((tgt) => {
 				expect(tgt.target).to.eql('app.start.js');

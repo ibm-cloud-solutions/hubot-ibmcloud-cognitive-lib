@@ -3,7 +3,6 @@
 	"version": "0.0.1",
 	"classes": [{
 		"class": "app.list",
-		"emittarget": "app.list.js",
 		"texts": [
 			"Show my apps",
 			"Show me my applications.",
