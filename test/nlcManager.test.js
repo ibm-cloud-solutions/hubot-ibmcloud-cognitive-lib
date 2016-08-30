@@ -164,8 +164,19 @@ describe('Test the NLCManager library', function(){
 		});
 
 		it('should fail to list all classifiers', function(done){
-			watson_nlc.classifierList().catch(function(error){
+			watson_nlc.classifierList().then(() => {
+				done(Error('Test should have failed listing all classifiers'));
+			}).catch(function(error){
 				expect(error).to.include('Error getting list of classifiers.');
+				done();
+			});
+		});
+
+		it('should fail to train a classifier', function(done){
+			watson_nlc.train().then(() => {
+				done(Error('Test should have failed training a new classifier'));
+			}).catch(function(error){
+				expect(error).to.include('Error creating classifier');
 				done();
 			});
 		});

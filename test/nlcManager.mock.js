@@ -78,5 +78,9 @@ module.exports = {
 		.reply(500, function(){
 			return 'Some 500 error message from the NLC service';
 		});
+
+		// Mock route to create a new classifier.
+		nlcErrorScope.post('/v1/classifiers')
+		.reply(400, {});
 	}
 };
