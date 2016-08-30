@@ -224,8 +224,10 @@ NLCManager.prototype._startTraining = function(){
 								training_data: csvStream
 							};
 
-							return this._createClassifier(params).then((result) => {
+							this._createClassifier(params).then((result) => {
 								resolve(result);
+							}).catch((error) => {
+								reject(error);
 							});
 						}
 					});
@@ -249,7 +251,8 @@ NLCManager.prototype._createClassifier = function(params){
 		this.nlc.create(params, (err, response) => {
 			if (err) {
 				logger.error(`${TAG}: Error creating classifier.`, err);
-				reject('Error creating classifier' + JSON.stringify(err, null, 2));
+				logger.error(`${TAG} Options and data sent to train NLC service.`, params);
+				reject('Error creating classifier');
 			}
 			else {
 				this.classifierTraining = response;
@@ -360,7 +363,7 @@ NLCManager.prototype._deleteOldClassifiers = function(){
 									});
 								});
 							}).catch((error) => {
-								logger.error(`${TAG}: Error deleting DB classifier data for ${deleteClassifierId}`, error);
+								logger.warn(`${TAG}: Couldn't delete DB doc with classifier data for ${deleteClassifierId}`, error);
 							});
 
 							this._deleteOldClassifiers().then((result) => {
