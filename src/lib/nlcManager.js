@@ -224,7 +224,7 @@ NLCManager.prototype._startTraining = function(){
 								training_data: csvStream
 							};
 
-							return this._createClassifier(params).then((result) => {
+							this._createClassifier(params).then((result) => {
 								resolve(result);
 							}).catch((error) => {
 								reject(error);
