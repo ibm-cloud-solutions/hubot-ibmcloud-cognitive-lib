@@ -113,7 +113,7 @@ To create a class with a set of suggested natural language statements, an emit t
 
 `texts` is an array of suggested natural language statements to use to invoke the command.  These statements are used to seed the natural language classifier.
 
-`emittarget` is the target event name.  If this package is incorporated within a bot, this emittarget could be used to communicate between a common NLC handler and a specific command handler.
+`emittarget` is optional. It provides a target event name, when not specified it defaults to the `class` value. If this package is incorporated within a bot, this emittarget could be used to communicate between a common NLC handler and a specific command handler.
 
 `parameters` is optional and there is one for each desired parameter.
 
