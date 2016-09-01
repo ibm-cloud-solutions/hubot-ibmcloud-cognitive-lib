@@ -159,6 +159,7 @@ module.exports.getClassEmitTarget = function(className){
 					return resp;
 				}).catch(() => {
 					// can't execute this emit target, so return null
+					logger.error(`${TAG} Couldn't resolve parameters for class ${className}. This is likely caused by incorrect data in the database. Was trying to resolve initial params`, resp.parameters);
 					return null;
 				});
 			}
@@ -168,6 +169,7 @@ module.exports.getClassEmitTarget = function(className){
 			}
 		}
 		else {
+			logger.error(`${TAG} Class ${className} doesn't exist in the database. This is likely an indication of (1) the Watson NLC needs to be re-trained with the current data, or (2) a problem initializing or synchronizing the database.`);
 			return null;
 		}
 	});
