@@ -147,6 +147,22 @@ describe('Test the NLCManager library', function(){
 		});
 	});
 
+	it('Should start training classifier with dynamic training_data', function(done){
+		let counter = 0;
+
+		watson_nlc_options.classifierName = 'non-exist-classifier';
+		watson_nlc_options.training_data = function() {
+			counter++;
+			return 'data1,class1\ndata2,class2';
+		};
+
+		watson_nlc.trainIfNeeded().then(function(result){
+			expect(result.status).to.be.equal('Training');
+			expect(counter).to.be.equal(1);
+			done();
+		});
+	});
+
 	it('should successfully get training data for classifier', function(done){
 		watson_nlc.getClassifierData('classifier-data-123').then((result) => {
 			expect(result.classification).to.be.an('array');
