@@ -23,7 +23,7 @@ const logger = require('./logger');
  *        options.language = Watson NLC language (OPTIONAL, defaults to en)
  *        options.classifierName = Watson NLC classifier name (OPTIONAL, defaults to 'default-classifier')
  *        options.maxClassifiers = Maximum number of classifiers with name 'classifierName', will delete classifiers exceding this num (OPTIONAL, defaults to 3)
- *        options.training_data = ReadStream, typically created from a CSV file.  (OPTIONAL, if omitted training data will come from nlcDb)
+ *        options.training_data = ReadStream or function used to get CSV data to train NLC (OPTIONAL, if omitted training data will come from nlcDb)
  *        options.saveTrainingData = Saves data used to train the classifier (OPTIONAL, defaults to true)
  * @constructor
  */
@@ -195,10 +195,21 @@ NLCManager.prototype._startTraining = function(){
 		}
 		// Training with data initialized in opts.
 		else if (this.opts.training_data) {
+
+			let training_data;
+
+			if (typeof this.opts.training_data === 'function') {
+				// invoke the caller provided function to supply training data dynamically.
+				training_data = this.opts.training_data();
+			}
+			else {
+				training_data = this.opts.training_data;
+			}
+
 			let params = {
 				language: this.opts.classifierLanguage,
 				name: this.opts.classifierName,
-				training_data: this.opts.training_data
+				training_data: training_data
 			};
 
 			this._createClassifier(params).then((result) => {

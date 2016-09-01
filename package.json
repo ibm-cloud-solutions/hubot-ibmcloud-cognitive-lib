@@ -13,7 +13,8 @@
   "scripts": {
     "lint": "eslint src/**/*.js index.js test/*.js",
     "test": ". test/.env && mocha test",
-    "coverage": ". test/.env && istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
+    "coverage": ". test/.env && istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
+    "coverage-local": ". test/.env && istanbul cover -x '**/tools/**' --include-all-sources --report lcov --report cobertura --report text --dir ./gh-pages/coverage _mocha -- test"
   },
   "keywords": [
     "cognitive",
