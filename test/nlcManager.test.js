@@ -79,11 +79,12 @@ describe('Test the NLCManager library', function(){
 		});
 	});
 
-	it('should successfully list all classifiers in correct order', function(done){
+	it('should successfully list filtered classifiers in correct order', function(done){
 		watson_nlc.classifierList().then(function(result){
-			expect(result.length).to.be.equal(5);
+			expect(result.length).to.be.equal(3);
 			expect(result[0].name).to.be.equal('test-classifier');
-			expect(result[4].name).to.be.equal(trainingClassifier);
+			expect(result[1].name).to.be.equal('test-classifier');
+			expect(result[2].name).to.be.equal('test-classifier');
 			done();
 		});
 	});

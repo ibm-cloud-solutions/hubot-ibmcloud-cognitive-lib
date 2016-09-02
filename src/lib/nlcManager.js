@@ -533,7 +533,12 @@ NLCManager.prototype._getClassifierList = function(){
 			}
 			else {
 				var checkStatus = [];
-				response.classifiers.map((classifier) => {
+
+				var filteredClassifiers = response.classifiers.filter((classifier) => {
+					return classifier.name === this.opts.classifierName;
+				});
+
+				filteredClassifiers.map((classifier) => {
 					checkStatus.push(this._getClassifierStatus(classifier.classifier_id));
 				});
 
