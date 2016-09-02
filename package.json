@@ -51,7 +51,9 @@
     "pouchdb": "^5.4.5",
     "pouchdb-memory": "^1.1.0",
     "string-length": "^1.0.1",
-    "watson-developer-cloud": "^1.9.4",
     "winston": "^2.2.0"
+  },
+  "peerDependencies": {
+    "watson-developer-cloud": "^1.9.4"
   }
 }
