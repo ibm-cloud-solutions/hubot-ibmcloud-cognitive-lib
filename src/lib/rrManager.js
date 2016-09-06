@@ -11,7 +11,7 @@ const TAG = path.basename(__filename);
 const watson = require('watson-developer-cloud');
 const stringify = require('csv-stringify');
 const csvParse = require('csv-parse');
-// const rrDb = require('./rrDb'); //TODO: uncomment later
+const rrDb = require('./rrDb');
 const logger = require('./logger');
 const fs = require('fs');
 const qs = require('qs');
@@ -135,7 +135,6 @@ RRManager.prototype.setupIfNeeded = function(){
 };
 
 
-
 /**
  * Asynchronously monitors a ranker that is being trained. It resolves when training
  * completes and the ranker status is 'Available'. It polls for ranker status every
@@ -192,17 +191,17 @@ RRManager.prototype.rank = function(text){
 				resolve(ranker);
 			}
 			else {
-				if(!this.solrClient){
+				if (!this.solrClient){
 					let params = {
-					  cluster_id: this.cluster_cache.solr_cluster_id,
-					  collection_name: this.opts.collectionName
+						cluster_id: this.cluster_cache.solr_cluster_id,
+						collection_name: this.opts.collectionName
 					};
 					this.solrClient = this.rr.createSolrClient(params);
 				}
 				this.solrClient.get('fcselect', qs.stringify({
 					q: text,
 					ranker_id: ranker.ranker_id,
-				 	fl: 'id,title'}),
+					fl: 'id,title'}),
 					(err, response) => {
 						if (err) {
 							this.ranker_cache = undefined;
@@ -281,7 +280,6 @@ RRManager.prototype._deleteCluster = function(params){
 };
 
 
-
 /**
  * Internal method to set up a cluster.
  *
@@ -289,15 +287,15 @@ RRManager.prototype._deleteCluster = function(params){
  */
 RRManager.prototype._setupCluster = function(){
 
-	logger.info(`Creating new solr cluster...`);
+	logger.info('Creating new solr cluster...');
 	return new Promise((resolve, reject) => {
 		if (this.clusterInitializing) {
 
-			logger.info(`a solr cluster already exists`);
+			logger.info('a solr cluster already exists');
 			resolve(this.clusterInitializing);
 		}
 
-		else{
+		else {
 			let params = {
 				cluster_name: this.opts.clusterName
 			};
@@ -306,29 +304,31 @@ RRManager.prototype._setupCluster = function(){
 				return this._monitorCluster(result.solr_cluster_id);
 			}).then((result) => {
 				let config_params = {
-				  cluster_id: this.cluster_cache.solr_cluster_id,
-				  config_name: this.opts.configName,
-				  config_zip_path: this.opts.config
+					cluster_id: this.cluster_cache.solr_cluster_id,
+					config_name: this.opts.configName,
+					config_zip_path: this.opts.config
 				};
 				return this._uploadConfig(config_params);
 			}).then((result) => {
 				let collection_params = {
-				  cluster_id: this.cluster_cache.solr_cluster_id,
-				  config_name: this.opts.configName,
-				  collection_name: this.opts.collectionName
+					cluster_id: this.cluster_cache.solr_cluster_id,
+					config_name: this.opts.configName,
+					collection_name: this.opts.collectionName
 				};
 				return this._createCollection(collection_params);
 			}).then((result) => {
-				if(this.opts.documents){
+				if (this.opts.documents){
 					fs.readFile(this.opts.documents, 'utf8', (err, data) => {
-						if(err){
+						if (err){
 							reject(err);
-						} else{
+						}
+						else {
 							let documents = JSON.parse(data);
 							return this._uploadDocuments(documents);
 						}
 					});
-				} else{
+				}
+				else {
 					return rrDb.open().then((db) => {
 						return db.getDocuments().then((jsonInput) => {
 							return this._uploadDocuments(jsonInput);
@@ -354,7 +354,7 @@ RRManager.prototype._setupCluster = function(){
  */
 RRManager.prototype._startTraining = function(){
 
-	logger.info(`Starting training a ranker`);
+	logger.info('Starting training a ranker');
 	return new Promise((resolve, reject) => {
 		if (this.rankerTraining) {
 			logger.info(`Ranker already in training: ${this.rankerTraining}`);
@@ -364,7 +364,7 @@ RRManager.prototype._startTraining = function(){
 		else if (this.opts.training_data) {
 			let params = {
 				training_data: this.opts.training_data,
-				training_metadata: JSON.stringify({"name": this.opts.rankerName})
+				training_metadata: JSON.stringify({name: this.opts.rankerName})
 			};
 			this._createRanker(params).then((result) => {
 				resolve(result);
@@ -412,7 +412,7 @@ RRManager.prototype._startTraining = function(){
  */
 RRManager.prototype._createCluster = function(params){
 
-	logger.info(`Creating cluster with params `, params);
+	logger.info('Creating cluster with params ', params);
 	return new Promise((resolve, reject) => {
 		this.rr.createCluster(params, (err, response) => {
 			if (err) {
@@ -422,7 +422,7 @@ RRManager.prototype._createCluster = function(params){
 			}
 			else {
 				this.clusterInitializing = response;
-				logger.info(`Created cluster: `, this.clusterInitializing);
+				logger.info('Created cluster: ', this.clusterInitializing);
 				resolve(response);
 			}
 		});
@@ -437,7 +437,7 @@ RRManager.prototype._createCluster = function(params){
  * @return Object        	Result from Watson RR service.
  */
 RRManager.prototype._uploadConfig = function(params){
-	logger.info(`Uploading config for cluster`);
+	logger.info('Uploading config for cluster');
 	return new Promise((resolve, reject) => {
 		this.rr.uploadConfig(params, (err, response) => {
 			if (err) {
@@ -460,7 +460,7 @@ RRManager.prototype._uploadConfig = function(params){
  * @return Object        	Result from Watson RR service.
  */
 RRManager.prototype._createCollection = function(params){
-	logger.info(`Creating collection for cluster: `, params);
+	logger.info('Creating collection for cluster: ', params);
 	return new Promise((resolve, reject) => {
 		this.rr.createCollection(params, (err, response) => {
 			if (err) {
@@ -483,9 +483,9 @@ RRManager.prototype._createCollection = function(params){
  * @return Object        	Result from Watson RR service.
  */
 RRManager.prototype._uploadDocuments = function(documents){
-	logger.info(`Uploading documents for cluster...`);
+	logger.info('Uploading documents for cluster...');
 	return new Promise((resolve, reject) => {
-		if(!this.solrClient){
+		if (!this.solrClient){
 			let params = {
 				cluster_id: this.cluster_cache.solr_cluster_id,
 				collection_name: this.opts.collectionName
@@ -499,12 +499,13 @@ RRManager.prototype._uploadDocuments = function(documents){
 			}
 			else {
 				this.solrClient.commit(function(err) {
-	        if(err) {
-	          reject('Error committing change: ' + err);
-	        } else {
+					if (err) {
+						reject('Error committing change: ' + err);
+					}
+					else {
 						resolve('successfully committed changes');
-          }
-	      });
+					}
+				});
 			}
 		});
 	});
@@ -518,7 +519,7 @@ RRManager.prototype._uploadDocuments = function(documents){
  * @return Object        	Result from Watson RR service.
  */
 RRManager.prototype._createRanker = function(params){
-	logger.info(`Creating new ranker...`);
+	logger.info('Creating new ranker...');
 	return new Promise((resolve, reject) => {
 		this.rr.createRanker(params, (err, response) => {
 			if (err) {
@@ -661,18 +662,17 @@ RRManager.prototype._deleteOldRankers = function(){
 							reject('Error deleting ranker: ' + JSON.stringify(err, null, 2));
 						}
 						else {
-							logger.info(`Deleted ranker`, filteredRankers[filteredRankers.length - 1].ranker_id);
-							//TODO: uncomment when db working
-							// rrDb.open().then((db) => {
-							// 	return db.get(deleteRankerId).then((doc) => {
-							// 		doc._deleted = true;
-							// 		return db.put(doc).then(() => {
-							// 			logger.info(`${TAG}: Deleted DB ranker training data for ${deleteRankerId}`);
-							// 		});
-							// 	});
-							// }).catch((error) => {
-							// 	logger.warn(`${TAG}: Couldn't delete DB doc with ranker data for ${deleteRankerId}`, error);
-							// });
+							logger.info('Deleted ranker', filteredRankers[filteredRankers.length - 1].ranker_id);
+							rrDb.open().then((db) => {
+								return db.get(deleteRankerId).then((doc) => {
+									doc._deleted = true;
+									return db.put(doc).then(() => {
+										logger.info(`${TAG}: Deleted DB ranker training data for ${deleteRankerId}`);
+									});
+								});
+							}).catch((error) => {
+								logger.warn(`${TAG}: Couldn't delete DB doc with ranker data for ${deleteRankerId}`, error);
+							});
 
 							this._deleteOldRankers().then((result) => {
 								resolve(result);
@@ -799,9 +799,10 @@ RRManager.prototype._getConfig = function(params){
 				reject('Error getting available config: ' + JSON.stringify(err, null, 2));
 			}
 			else {
-				if(response.solr_configs){
+				if (response.solr_configs){
 					resolve(response);
-				} else{
+				}
+				else {
 					this._uploadConfig(params).then((result) => {
 						resolve(result);
 					}).catch((err) => {
@@ -941,7 +942,6 @@ RRManager.prototype._getClusterStatus = function(cluster_id){
 		}
 	});
 };
-
 
 
 /**
