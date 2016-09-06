@@ -54,6 +54,6 @@
     "winston": "^2.2.0"
   },
   "peerDependencies": {
-    "watson-developer-cloud": "^1.9.4"
+    "watson-developer-cloud": ">=2.1.4"
   }
 }
