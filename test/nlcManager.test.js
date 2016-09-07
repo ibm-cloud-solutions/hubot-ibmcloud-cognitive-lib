@@ -13,14 +13,14 @@ const NLCManager = require('../index').nlcManager;
 const mockNLP = require('./nlcManager.mock');
 const env = require('../src/lib/env.js');
 const dbSetup = require('./setupTestDb');
-var db;
+let db;
 
 describe('Test the NLCManager library', function(){
-	var watson_nlc;
-	var watson_nlc_options;
-	var nonExistantClassifier = 'test-classifier2';
-	var trainingClassifier = 'test-classifier3';
-	var unavailableClassifier = 'test-classifier4';
+	let watson_nlc;
+	let watson_nlc_options;
+	let nonExistantClassifier = 'test-classifier2';
+	let trainingClassifier = 'test-classifier3';
+	let unavailableClassifier = 'test-classifier4';
 
 	before(function(done){
 		dbSetup.setup().then((database) => {

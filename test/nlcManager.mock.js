@@ -16,7 +16,7 @@ const mockClassifierStatusAvailableResults = require(path.resolve(__dirname, 're
 const mockClassifierStatusTrainingResults = require(path.resolve(__dirname, 'resources', 'mock.classifierStatusTraining.json'));
 const mockClassifierStatusUnavailableResults = require(path.resolve(__dirname, 'resources', 'mock.classifierStatusUnavailable.json'));
 
-var classifierList = require(path.resolve(__dirname, 'resources', 'mock.classifierList.json'));
+let classifierList = require(path.resolve(__dirname, 'resources', 'mock.classifierList.json'));
 
 module.exports = {
 	setupMockery: function() {
