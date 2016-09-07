@@ -974,7 +974,7 @@ RRManager.prototype._getRankerStatus = function(ranker_id){
 				else {
 					// If ranker is Training, record it's training duration
 					if (status.status === 'Training') {
-						var duration = Math.floor((Date.now() - new Date(status.created)) / 60000);
+						const duration = Math.floor((Date.now() - new Date(status.created)) / 60000);
 						status.duration = duration > 0 ? duration : 0;
 					}
 					resolve(status);
@@ -1003,14 +1003,14 @@ RRManager.prototype._getRankerList = function(){
 				reject('Error getting list of rankers.' + JSON.stringify(err, null, 2));
 			}
 			else {
-				var checkStatus = [];
+				let checkStatus = [];
 				response.rankers.map((ranker) => {
 					checkStatus.push(this._getRankerStatus(ranker.ranker_id));
 				});
 
 				Promise.all(checkStatus).then((rankers) => {
 					// Sort by latest created; first Available rankers, then Training
-					var sortedRankers = rankers.sort((a, b) => {
+					let sortedRankers = rankers.sort((a, b) => {
 						if (a.status !== b.status) {
 							return a.status === 'Available' ? -1 : 1;
 						}
