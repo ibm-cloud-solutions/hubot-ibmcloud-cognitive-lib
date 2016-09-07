@@ -661,11 +661,11 @@ RRManager.prototype._deleteOldRankers = function(){
 				reject('Error getting available rankers. ' + JSON.stringify(err, null, 2));
 			}
 			else {
-				var sortedRankers = response.rankers.sort((a, b) => {
+				let sortedRankers = response.rankers.sort((a, b) => {
 					return new Date(b.created) - new Date(a.created);
 				});
 
-				var filteredRankers = sortedRankers.filter((ranker) => {
+				let filteredRankers = sortedRankers.filter((ranker) => {
 					return ranker.name === this.opts.rankerName;
 				});
 
@@ -726,7 +726,7 @@ RRManager.prototype._getCluster = function(doNotCreate){
 					reject('Error getting available clusters.' + JSON.stringify(err, null, 2));
 				}
 				else {
-					var filteredClusters = response.clusters.filter((cluster) => {
+					let filteredClusters = response.clusters.filter((cluster) => {
 						return cluster.cluster_name === this.opts.clusterName;
 					});
 
@@ -746,11 +746,11 @@ RRManager.prototype._getCluster = function(doNotCreate){
 					}
 					else {
 						// try to find the most recent available.  or most recent that started training.
-						var sortedClusters = filteredClusters.sort((a, b) => {
+						let sortedClusters = filteredClusters.sort((a, b) => {
 							return new Date(b.created) - new Date(a.created);
 						});
 
-						var checkStatus = [];
+						let checkStatus = [];
 						sortedClusters.map((cluster) => {
 							checkStatus.push(this._getClusterStatus(cluster.solr_cluster_id));
 						});
@@ -758,7 +758,7 @@ RRManager.prototype._getCluster = function(doNotCreate){
 						Promise.all(checkStatus).then((clusterStatus) => {
 
 							this.clusterInitializing = undefined;
-							for (var i = 0; i < sortedClusters.length; i++){
+							for (let i = 0; i < sortedClusters.length; i++){
 								if (sortedClusters[i].cluster_name === this.opts.clusterName){
 									if (clusterStatus[i].solr_cluster_status === 'READY'){
 										this.cluster_cache = clusterStatus[i];
@@ -851,7 +851,7 @@ RRManager.prototype._getRanker = function(doNotTrain){
 				}
 				else {
 					let rankerName = this.opts.rankerName;
-					var filteredRankers = response.rankers.filter((ranker) => {
+					let filteredRankers = response.rankers.filter((ranker) => {
 						return ranker.name === rankerName;
 					});
 
@@ -871,11 +871,11 @@ RRManager.prototype._getRanker = function(doNotTrain){
 					}
 					else {
 						// try to find the most recent available.  or most recent that started training.
-						var sortedRankers = filteredRankers.sort((a, b) => {
+						let sortedRankers = filteredRankers.sort((a, b) => {
 							return new Date(b.created) - new Date(a.created);
 						});
 
-						var checkStatus = [];
+						let checkStatus = [];
 						sortedRankers.map((ranker) => {
 							checkStatus.push(this._getRankerStatus(ranker.ranker_id));
 						});
@@ -883,7 +883,7 @@ RRManager.prototype._getRanker = function(doNotTrain){
 						Promise.all(checkStatus).then((rankerStatus) => {
 
 							this.rankerTraining = undefined;
-							for (var i = 0; i < sortedRankers.length; i++){
+							for (let i = 0; i < sortedRankers.length; i++){
 								if (sortedRankers[i].name === this.opts.rankerName){
 									if (rankerStatus[i].status === 'Available'){
 										this.ranker_cache = rankerStatus[i];
@@ -940,7 +940,7 @@ RRManager.prototype._getClusterStatus = function(cluster_id){
 				else {
 					// If cluster is unavailable, record it's training duration
 					if (status.status === 'NOT_AVAILABLE') {
-						var duration = Math.floor((Date.now() - new Date(status.created)) / 60000);
+						let duration = Math.floor((Date.now() - new Date(status.created)) / 60000);
 						status.duration = duration > 0 ? duration : 0;
 					}
 					resolve(status);
