@@ -50,7 +50,7 @@ function initializeDB(db){
 				}
 			};
 
-			this.db.put(ddoc).then(() => {
+			db.put(ddoc).then(() => {
 				resolve();
 			}).catch((err) => {
 				logger.error(`${TAG}: Error initializing Cloudant sync`, err);
