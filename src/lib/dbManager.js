@@ -207,8 +207,8 @@ DBManager.prototype.getRRClasses = function(){
 					let className = row.key;
 					// allow short hand assignment for classifications
 					let text = row.doc.text || row.doc.classification.text;
-					if (result.length > 0 && result[result.length-1].indexOf(className) !== -1){
-						result[result.length-1] = [className, result[result.length-1][1] + "," + text];
+					if (result.length > 0 && result[result.length - 1].indexOf(className) !== -1) {
+						result[result.length - 1] = [className, result[result.length - 1][1] + ',' + text];
 					}
 					else {
 						result.push([

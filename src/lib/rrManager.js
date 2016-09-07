@@ -9,11 +9,10 @@
 const path = require('path');
 const TAG = path.basename(__filename);
 const watson = require('watson-developer-cloud');
-const stringify = require('csv-stringify');
 const csvParse = require('csv-parse');
 const DBManager = require('./dbManager');
 const env = require('./env');
-const rrDb = new DBManager({localDbName: 'nlc', remoteDbName: env.cloudantDb}); //TODO: change to 'rr'
+const rrDb = new DBManager({localDbName: 'rr', remoteDbName: env.cloudantDb});
 const logger = require('./logger');
 const fs = require('fs');
 const qs = require('qs');
@@ -253,8 +252,8 @@ RRManager.prototype.getRankerData = function(rankerId){
 				}
 			});
 		}).catch((err) => {
-  		logger.error(`Error retrieving data used to train ranker ${rankerId}`, err);
-  		reject(`Error retrieving data used to train ranker ${rankerId}`, err);
+			logger.error(`Error retrieving data used to train ranker ${rankerId}`, err);
+			reject(`Error retrieving data used to train ranker ${rankerId}`, err);
 		});
 	});
 };
@@ -375,26 +374,27 @@ RRManager.prototype._startTraining = function(){
 		// Training data from PouchDB.
 		else {
 			rrDb.getRRClasses().then((csvInput) => {
-				let csv_text = "question_id,f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,r1,r2,s,ground_truth\n";
-				let fcselect_calls = []
-				for (let i=0; i<csvInput.length; i++){
+				let csv_text = 'question_id,f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,r1,r2,s,ground_truth\n';
+				let fcselect_calls = [];
+				for (let i = 0; i < csvInput.length; i++){
 					let row = csvInput[i];
 					fcselect_calls.push(new Promise((resolve, reject) => {
 						let query = this.opts.url + '/v1/solr_clusters/' + this.cluster_cache.solr_cluster_id + '/solr/' + this.opts.collectionName + '/fcselect?q=' + row[0] + '&gt=' + row[1] + '&returnRSInput=true&rows=10&wt=json&fl=id';
 						let auth = {
-						  "auth": {
-						    "pass": this.opts.password,
-						    "user": this.opts.username
-						  }
+							auth: {
+								pass: this.opts.password,
+								user: this.opts.username
+							}
 						};
 						request.get(query, auth, (err, response, body) => {
 							if (err) {
 								reject(err);
 							}
 							else {
-								if(response.statusCode >= 300){
+								if (response.statusCode >= 300){
 									reject(response.statusMessage);
-								} else{
+								}
+								else {
 									csv_text += JSON.parse(body).RSInput;
 									resolve(JSON.parse(body).RSInput);
 								}
