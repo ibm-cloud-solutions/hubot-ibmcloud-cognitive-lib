@@ -5,70 +5,36 @@
   * disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
   */
 'use strict';
-
 const path = require('path');
 const TAG = path.basename(__filename);
 const logger = require('./logger');
 const env = require('./env');
 const PouchDB = require('./PouchDB');
-const pjson = require(path.resolve(process.cwd(), 'package.json'));
 
+const pjson = require(path.resolve(process.cwd(), 'package.json'));
 const classesDesignDoc = '_design/classes';
 const classesView = 'classes/byClass';
 const targetView = 'classes/byTarget';
 
-// TODO: Commenting because we don't currently use this, enable auto-training in the future.
-// const events = require('events');
-// const eventEmitter = new events.EventEmitter();
 
-const pouch = new Promise((resolve, reject) => {
-	try {
-		const db = PouchDB.open(env.cloudantDb);
-		this.db = db;
+function DBManager(options){
+	this.localDbName = options.localDbName;
+	this.db = PouchDB.open(options.localDbName);
+	this.opts = options;
 
-		const syncFn = function(){
-			if (!env.test && env.cloudantEndpoint && env.cloudantPassword) {
-				logger.info(`${TAG}: Starting sync of NLC training data with Cloudant.`);
+	initializeDB(this.db).then(() => {
+		syncFn(this.db, options.localDbName, options.remoteDbName);
+	}).catch((error) => {
+		logger.error(`${TAG}: Unable to start sync for [${options.localDbName}] because`, error);
+	});
 
-				// let update = false;  TODO: Commenting because we don't currently use this, but auto-training should be a future enhancement.
-				db.sync(`https://${env.cloudantKey}:${env.cloudantPassword}@${env.cloudantEndpoint}/${env.cloudantDb}`,
-					{
-						include_docs: true,
-						filter: function(doc) {
-							// filter client side documents that we don't want synchronized
-							return doc.storageType !== 'private';
-						}
-					})
-					// .on('change', function(change){
-					// 	update = true;
-					// })
-					.on('complete', function(info){
-						logger.info(`${TAG}: Completed sync of NLC training data with Cloudant.`);
-						logger.debug(`${TAG}: Cloudant sync results.`, info);
+}
 
-						// if (update){
-						// 	eventEmitter.emit('nlc.retrain');
-						// }
-						setTimeout(syncFn, env.syncInterval);
-					})
-					.on('denied', function(err){
-						logger.error(`${TAG}: Replication of NLC training data record denied.`, err);
-					})
-					.on('error', function(err){
-						let retryInterval = Math.min(env.syncInterval, 1000 * 60);
-						logger.error(`${TAG}: Error during sync of NLC training data with Cloudant. Will retry in ${Math.floor(retryInterval / 1000)} seconds.`, err);
-						setTimeout(syncFn, retryInterval);
-					});
-			}
-			else {
-				logger.warn(`${TAG}: Cloudant sync disabled. To enable set HUBOT_CLOUDANT_ENDPOINT and HUBOT_CLOUDANT_PASSWORD.`);
-			}
-		};
 
-		return db.get('_design/classes').then(() => {
-			// sync if enabled
-			syncFn();
-			resolve(this);
+function initializeDB(db){
+	return new Promise((resolve, reject) => {
+		db.get('_design/classes').then(() => {
+			resolve();
 		}).catch(() => {
 			// create design doc
 			let ddoc = {
@@ -84,27 +50,147 @@ const pouch = new Promise((resolve, reject) => {
 				}
 			};
 
-			return db.put(ddoc).then(() => {
-				// sync if enabled
-				syncFn();
-				resolve(this);
+			this.db.put(ddoc).then(() => {
+				resolve();
 			}).catch((err) => {
 				logger.error(`${TAG}: Error initializing Cloudant sync`, err);
 				reject(err);
 			});
 		});
+	});
+}
 
-	}
-	catch (e) {
-		logger.error(`${TAG}: unexpected problem with Cloudant sync.`);
-		reject(e);
-	}
-});
 
-module.exports.open = function() {
-	return pouch;
+function syncFn(db, localDbName, remoteDbName){
+	if (!env.test && env.cloudantEndpoint && env.cloudantPassword) {
+		logger.info(`${TAG}: Starting sync of database ${localDbName} with remote Cloudant db ${remoteDbName}.`);
+
+		db.sync(`https://${env.cloudantKey}:${env.cloudantPassword}@${env.cloudantEndpoint}/${remoteDbName}`,
+			{
+				include_docs: true,
+				filter: function(doc) {
+					// filter client side documents that we don't want synchronized
+					return doc.storageType !== 'private';
+				}
+			})
+			.on('complete', function(info){
+				logger.info(`${TAG}: Completed sync of NLC training data with Cloudant.`);
+				logger.debug(`${TAG}: Cloudant sync results.`, info);
+
+				setTimeout(syncFn, env.syncInterval);
+			})
+			.on('denied', function(err){
+				logger.error(`${TAG}: Replication of NLC training data record denied.`, err);
+			})
+			.on('error', function(err){
+				let retryInterval = Math.min(env.syncInterval, 1000 * 60);
+				logger.error(`${TAG}: Error during sync of NLC training data with Cloudant. Will retry in ${Math.floor(retryInterval / 1000)} seconds.`, err);
+				setTimeout(syncFn, retryInterval);
+			});
+	}
+	else {
+		logger.warn(`${TAG}: Cloudant sync disabled. To enable set HUBOT_CLOUDANT_ENDPOINT and HUBOT_CLOUDANT_PASSWORD.`);
+	}
 };
 
+
+DBManager.prototype.get = function(docId) {
+	return this.db.get(docId);
+};
+
+
+DBManager.prototype.put = function(doc){
+	return this.db.put(doc);
+};
+
+
+DBManager.prototype.post = function(classification, type, selectedClass) {
+	return new Promise((resolve, reject) => {
+		let doc = {
+			type: type,
+			ts: Date.now()
+		};
+
+		if (type === 'negative_fb'){
+			doc.logs = classification;
+		}
+		else {
+			doc.classification = classification;
+		}
+
+		if (selectedClass && type === 'learned') {
+			doc.selectedClass = selectedClass;
+			if (env.truthy(env.nlc_autoApprove)) {
+				doc.approved = true;
+				doc.approved_timestamp = Date.now();
+				doc.approved_method = 'auto';
+			}
+		}
+
+		// add confidence thresholds and bot version
+		doc.lowConfidenceThreshold = env.lowThreshold;
+		doc.highConfidenceThreshold = env.highThreshold;
+		doc.botVersion = pjson.version;
+		doc.botName = pjson.name;
+
+		if (this.db){
+			return this.db.post(doc).then((result) => {
+				resolve(result);
+			});
+		}
+		else {
+			reject('Database needs to be open before calling put');
+		}
+	});
+};
+
+
+DBManager.prototype.createOrUpdate = function(newDoc){
+	return new Promise((resolve, reject) => {
+		if (newDoc._id) {
+			return this.db.get(newDoc._id).then((doc) => {
+				newDoc._rev = doc._rev;
+				return this.db.put(newDoc);
+			}).then(() => {
+				resolve();
+			}).catch(() => {
+				// doc doesn't exist
+				return this.db.put(newDoc).then(() => {
+					resolve();
+				}).catch((err) => {
+					reject(err);
+				});
+			});
+		}
+		else {
+			reject('document id is required for update');
+		}
+	});
+};
+
+
+DBManager.prototype.info = function(opts){
+	return new Promise((resolve, reject) => {
+		if (this.db){
+			return this.db.info().then((info) => {
+				if (opts && (opts.allDocs || opts.include_docs)){
+					return this.db.allDocs(opts).then((allDocs) => {
+						resolve(allDocs);
+					});
+				}
+				else {
+					resolve(info);
+				}
+			});
+		}
+		else {
+			reject('Database needs to be open before calling info');
+		}
+	});
+};
+
+
+// ************** NLC specific methods ******************************* //
 
 /**
  * Return configuration associated with a specific class name.
@@ -112,7 +198,7 @@ module.exports.open = function() {
  * @param  string className 	Name of the NLC classification.
  * @return {}           		Return object contains the following keys. {class, description, target, parameters}
  */
-module.exports.getClassEmitTarget = function(className){
+DBManager.prototype.getClassEmitTarget = function(className){
 	return this.db.query(targetView, {
 		key: className
 	}).then((result) => {
@@ -175,7 +261,7 @@ module.exports.getClassEmitTarget = function(className){
 	});
 };
 
-module.exports.getClasses = function(approvedAfterDate){
+DBManager.prototype.getClasses = function(approvedAfterDate){
 	// assumption that the database can be held in memory
 	// note classifier will break if this is not the case
 	// return an array of [text, className]
@@ -222,102 +308,12 @@ module.exports.getClasses = function(approvedAfterDate){
 	});
 };
 
-module.exports.get = function(docId) {
-	return this.db.get(docId);
-};
 
-module.exports.put = function(doc){
-	return this.db.put(doc);
-};
-
-module.exports.post = function(classification, type, selectedClass) {
-	return new Promise((resolve, reject) => {
-		let doc = {
-			type: type,
-			ts: Date.now()
-		};
-
-		if (type === 'negative_fb'){
-			doc.logs = classification;
-		}
-		else {
-			doc.classification = classification;
-		}
-
-		if (selectedClass && type === 'learned') {
-			doc.selectedClass = selectedClass;
-			if (env.truthy(env.nlc_autoApprove)) {
-				doc.approved = true;
-				doc.approved_timestamp = Date.now();
-				doc.approved_method = 'auto';
-			}
-		}
-
-		// add confidence thresholds and bot version
-		doc.lowConfidenceThreshold = env.lowThreshold;
-		doc.highConfidenceThreshold = env.highThreshold;
-		doc.botVersion = pjson.version;
-		doc.botName = pjson.name;
-
-		if (this.db){
-			return this.db.post(doc).then((result) => {
-				resolve(result);
-			});
-		}
-		else {
-			reject('Database needs to be open before calling put');
-		}
-	});
-};
-
-module.exports.createOrUpdate = function(newDoc){
-	return new Promise((resolve, reject) => {
-		if (newDoc._id) {
-			return this.db.get(newDoc._id).then((doc) => {
-				newDoc._rev = doc._rev;
-				return this.db.put(newDoc);
-			}).then(() => {
-				resolve();
-			}).catch(() => {
-				// doc doesn't exist
-				return this.db.put(newDoc).then(() => {
-					resolve();
-				}).catch((err) => {
-					reject(err);
-				});
-			});
-		}
-		else {
-			reject('document id is required for update');
-		}
-	});
-};
-
-module.exports.info = function(opts){
-	return new Promise((resolve, reject) => {
-		if (this.db){
-			return this.db.info().then((info) => {
-				if (opts && (opts.allDocs || opts.include_docs)){
-					return this.db.allDocs(opts).then((allDocs) => {
-						resolve(allDocs);
-					});
-				}
-				else {
-					resolve(info);
-				}
-			});
-		}
-		else {
-			reject('Database needs to be open before calling info');
-		}
-	});
-};
-
-module.exports.getAutoApprove = function() {
+DBManager.prototype.getAutoApprove = function() {
 	return env.truthy(env.nlc_autoApprove);
 };
 
-module.exports.setAutoApprove = function(approve) {
+DBManager.prototype.setAutoApprove = function(approve) {
 	if (typeof (approve) === 'boolean') {
 		env.nlc_autoApprove = approve;
 	}
@@ -325,3 +321,6 @@ module.exports.setAutoApprove = function(approve) {
 		env.nlc_autoApprove = false;
 	}
 };
+
+
+module.exports = DBManager;
