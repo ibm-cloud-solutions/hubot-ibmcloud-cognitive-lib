@@ -10,12 +10,12 @@ const nlcDb = require('./nlcDb');
 
 const NLCCONFIG_KEY = Symbol.for('hubot-ibmcloud-cognitive-lib-nlcconfig');
 
-var globalSymbols = Object.getOwnPropertySymbols(global);
+let globalSymbols = Object.getOwnPropertySymbols(global);
 if (globalSymbols.indexOf(NLCCONFIG_KEY) < 0) {
 	global[NLCCONFIG_KEY] = {};
 }
 
-var singleton = {};
+let singleton = {};
 Object.defineProperty(singleton, 'instance', {
 	get: function(){
 		return global[NLCCONFIG_KEY];

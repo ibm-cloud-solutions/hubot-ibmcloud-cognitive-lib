@@ -347,11 +347,11 @@ NLCManager.prototype._deleteOldClassifiers = function(){
 				reject('Error getting available classifiers. ' + JSON.stringify(err, null, 2));
 			}
 			else {
-				var sortedClassifiers = response.classifiers.sort((a, b) => {
+				let sortedClassifiers = response.classifiers.sort((a, b) => {
 					return new Date(b.created) - new Date(a.created);
 				});
 
-				var filteredClassifiers = sortedClassifiers.filter((classifier) => {
+				let filteredClassifiers = sortedClassifiers.filter((classifier) => {
 					return classifier.name === this.opts.classifierName;
 				});
 
@@ -415,7 +415,7 @@ NLCManager.prototype._getClassifier = function(doNotTrain){
 					reject('Error getting available classifiers.' + JSON.stringify(err, null, 2));
 				}
 				else {
-					var filteredClassifiers = response.classifiers.filter((classifier) => {
+					let filteredClassifiers = response.classifiers.filter((classifier) => {
 						return classifier.name === this.opts.classifierName;
 					});
 
@@ -435,11 +435,11 @@ NLCManager.prototype._getClassifier = function(doNotTrain){
 					}
 					else {
 						// try to find the most recent available.  or most recent that started training.
-						var sortedClassifiers = filteredClassifiers.sort((a, b) => {
+						let sortedClassifiers = filteredClassifiers.sort((a, b) => {
 							return new Date(b.created) - new Date(a.created);
 						});
 
-						var checkStatus = [];
+						let checkStatus = [];
 						sortedClassifiers.map((classifier) => {
 							checkStatus.push(this._getClassifierStatus(classifier.classifier_id));
 						});
@@ -447,7 +447,7 @@ NLCManager.prototype._getClassifier = function(doNotTrain){
 						Promise.all(checkStatus).then((classifierStatus) => {
 
 							this.classifierTraining = undefined;
-							for (var i = 0; i < sortedClassifiers.length; i++){
+							for (let i = 0; i < sortedClassifiers.length; i++){
 								if (sortedClassifiers[i].name === this.opts.classifierName){
 									if (classifierStatus[i].status === 'Available'){
 										this.classifier_cache = classifierStatus[i];
@@ -503,7 +503,7 @@ NLCManager.prototype._getClassifierStatus = function(classifier_id){
 				else {
 					// If classifier is Training, record it's training duration
 					if (status.status === 'Training') {
-						var duration = Math.floor((Date.now() - new Date(status.created)) / 60000);
+						let duration = Math.floor((Date.now() - new Date(status.created)) / 60000);
 						status.duration = duration > 0 ? duration : 0;
 					}
 					resolve(status);
@@ -532,9 +532,9 @@ NLCManager.prototype._getClassifierList = function(){
 				reject('Error getting list of classifiers.' + JSON.stringify(err, null, 2));
 			}
 			else {
-				var checkStatus = [];
+				let checkStatus = [];
 
-				var filteredClassifiers = response.classifiers.filter((classifier) => {
+				let filteredClassifiers = response.classifiers.filter((classifier) => {
 					return classifier.name === this.opts.classifierName;
 				});
 
@@ -544,7 +544,7 @@ NLCManager.prototype._getClassifierList = function(){
 
 				Promise.all(checkStatus).then((classifiers) => {
 					// Sort by latest created; first Available classifiers, then Training
-					var sortedClassifiers = classifiers.sort((a, b) => {
+					let sortedClassifiers = classifiers.sort((a, b) => {
 						if (a.status !== b.status) {
 							return a.status === 'Available' ? -1 : 1;
 						}
