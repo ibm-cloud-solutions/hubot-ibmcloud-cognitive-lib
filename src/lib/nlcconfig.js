@@ -5,9 +5,9 @@
   * disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
   */
 'use strict';
-
+const env = require('./env');
 const DBManager = require('./dbManager');
-const nlcDb = new DBManager('nlc');
+const nlcDb = new DBManager({localDbName: 'nlc', remoteDbName: env.cloudantDb});
 
 const NLCCONFIG_KEY = Symbol.for('hubot-ibmcloud-cognitive-lib-nlcconfig');
 

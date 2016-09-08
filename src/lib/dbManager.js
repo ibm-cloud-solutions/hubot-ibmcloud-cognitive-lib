@@ -16,18 +16,31 @@ const classesDesignDoc = '_design/classes';
 const classesView = 'classes/byClass';
 const targetView = 'classes/byTarget';
 
-
+let managedDBs = {};
 function DBManager(options){
+	// Reuse existing dbManager instances whenever possible
+	if (managedDBs[options.localDbName] !== undefined){
+		return managedDBs[options.localDbName];
+	}
+
+	// Validate options
+	if (options.localDbName === undefined) {
+		logger.error(`${TAG}: options.localDbName must be provided.`);
+	}
+
 	this.localDbName = options.localDbName;
+	this.remoteDbName = options.remoteDbName ? options.remoteDbName : options.localDbName;
+
 	this.db = PouchDB.open(options.localDbName);
 	this.opts = options;
 
 	initializeDB(this.db).then(() => {
-		syncFn(this.db, options.localDbName, options.remoteDbName);
+		syncFn(this.db, this.localDbName, this.remoteDbName);
 	}).catch((error) => {
 		logger.error(`${TAG}: Unable to start sync for [${options.localDbName}] because`, error);
 	});
 
+	managedDBs[this.localDbName] = this;
 }
 
 
