@@ -8,11 +8,13 @@
 
 const path = require('path');
 const TAG = path.basename(__filename);
+const env = require('./env');
 const watson = require('watson-developer-cloud');
 const stringify = require('csv-stringify');
 const csvParse = require('csv-parse');
-const nlcDb = require('./nlcDb');
 const logger = require('./logger');
+const DBManager = require('./dbManager');
+const nlcDb = new DBManager({localDbName: 'nlc', remoteDbName: env.cloudantDb});
 
 /**
  * @param options Object with the following configuration.
@@ -153,27 +155,25 @@ NLCManager.prototype.classify = function(text){
 NLCManager.prototype.getClassifierData = function(classifierId){
 	logger.debug(`${TAG} Requested data used to train NLC with clasifierId=${classifierId}`);
 	return new Promise((resolve, reject) => {
-		return nlcDb.open().then((db) => {
-			return db.get(classifierId).then((doc) => {
-				csvParse(doc.trainedData, function(err, jsonData){
-					if (err){
-						logger.error(`${TAG}: Error parsing CSV data used to train NLC with clasifierId=${classifierId}`, err);
-						reject(err);
-					}
-					else {
-						// Sort data by className for better display.
-						let result = {};
-						jsonData.forEach((trainingRecord) => {
-							for (let i = 1; i < trainingRecord.length; i++){
-								let texts = result[trainingRecord[i]] || [];
-								texts.push(trainingRecord[0]);
-								result[trainingRecord[i]] = texts;
-							}
-						});
-						logger.debug(`${TAG}: Data used to train NLC with classifierId=${classifierId}`, result);
-						resolve(result);
-					}
-				});
+		return nlcDb.get(classifierId).then((doc) => {
+			csvParse(doc.trainedData, function(err, jsonData){
+				if (err){
+					logger.error(`${TAG}: Error parsing CSV data used to train NLC with clasifierId=${classifierId}`, err);
+					reject(err);
+				}
+				else {
+					// Sort data by className for better display.
+					let result = {};
+					jsonData.forEach((trainingRecord) => {
+						for (let i = 1; i < trainingRecord.length; i++){
+							let texts = result[trainingRecord[i]] || [];
+							texts.push(trainingRecord[0]);
+							result[trainingRecord[i]] = texts;
+						}
+					});
+					logger.debug(`${TAG}: Data used to train NLC with classifierId=${classifierId}`, result);
+					resolve(result);
+				}
 			});
 		}).catch((err) => {
 			logger.error(`Error retrieving data used to train classifier ${classifierId}`, err);
@@ -221,27 +221,24 @@ NLCManager.prototype._startTraining = function(){
 
 		// Training data from PouchDB.
 		else {
-			return nlcDb.open().then((db) => {
-				return db.getClasses().then((csvInput) => {
-					stringify(csvInput, (err, csvStream) => {
-						if (err){
-							logger.error(`${TAG}: Error generating training data in csv format.`, err);
-							reject('Error generating training data in csv format.');
-						}
-						else {
-							let params = {
-								language: this.opts.classifierLanguage,
-								name: this.opts.classifierName,
-								training_data: csvStream
-							};
-
-							this._createClassifier(params).then((result) => {
-								resolve(result);
-							}).catch((error) => {
-								reject(error);
-							});
-						}
-					});
+			return nlcDb.getClasses().then((csvInput) => {
+				stringify(csvInput, (err, csvStream) => {
+					if (err){
+						logger.error(`${TAG}: Error generating training data in csv format.`, err);
+						reject('Error generating training data in csv format.');
+					}
+					else {
+						let params = {
+							language: this.opts.classifierLanguage,
+							name: this.opts.classifierName,
+							training_data: csvStream
+						};
+						this._createClassifier(params).then((result) => {
+							resolve(result);
+						}).catch((error) => {
+							reject(error);
+						});
+					}
 				});
 			}).catch((error) => {
 				reject(error);
@@ -270,16 +267,15 @@ NLCManager.prototype._createClassifier = function(params){
 
 				if (this.opts.saveTrainingData) {
 					logger.debug(`${TAG}: Saving NLC trained data for ${response.classifier_id}`);
-					return nlcDb.open().then((db) => {
-						let doc = {
-							_id: response.classifier_id,
-							type: 'classifier_data',
-							trainedData: params.training_data
-						};
-						return db.createOrUpdate(doc).then(() => {
-							logger.debug(`${TAG}: Saved NLC trained data for ${response.classifier_id}`);
-							resolve(response);
-						});
+					let doc = {
+						_id: response.classifier_id,
+						type: 'classifier_data',
+						trainedData: params.training_data
+					};
+
+					return nlcDb.createOrUpdate(doc).then(() => {
+						logger.debug(`${TAG}: Saved NLC trained data for ${response.classifier_id}`);
+						resolve(response);
 					}).catch((error) => {
 						logger.error(`${TAG}: Error saving NLC trained data for ${response.classifier_id}`, error);
 						resolve(response); // Resolve promise; don't fail because of DB errors.
@@ -366,12 +362,10 @@ NLCManager.prototype._deleteOldClassifiers = function(){
 						else {
 							logger.info('Deleted classifier', filteredClassifiers[filteredClassifiers.length - 1].classifier_id);
 
-							nlcDb.open().then((db) => {
-								return db.get(deleteClassifierId).then((doc) => {
-									doc._deleted = true;
-									return db.put(doc).then(() => {
-										logger.info(`${TAG}: Deleted DB classifier training data for ${deleteClassifierId}`);
-									});
+							nlcDb.get(deleteClassifierId).then((doc) => {
+								doc._deleted = true;
+								return nlcDb.put(doc).then(() => {
+									logger.info(`${TAG}: Deleted DB classifier training data for ${deleteClassifierId}`);
 								});
 							}).catch((error) => {
 								logger.warn(`${TAG}: Couldn't delete DB doc with classifier data for ${deleteClassifierId}`, error);

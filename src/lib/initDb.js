@@ -12,97 +12,95 @@ const fs = require('fs');
 
 process.env.SUPPRESS_ERRORS = true;
 
-const nlcDb = require('./nlcDb');
+const DBManager = require('./dbManager');
+const db = new DBManager('nlc');
 const env = require('./env');
 
 const PARAMETER_VALUES = 'parameter.values';
 
 exports.init = function(nlcFile){
 	return new Promise((resolve, reject) => {
-		nlcDb.open().then((db) => {
-			fs.readFile(nlcFile, (err, data) => {
-				if (err){
-					reject(err);
-				}
-				else {
-					let ps = [];
-					let cntr = 0;
-					let obj = JSON.parse(data);
+		fs.readFile(nlcFile, (err, data) => {
+			if (err){
+				reject(err);
+			}
+			else {
+				let ps = [];
+				let cntr = 0;
+				let obj = JSON.parse(data);
 
-					if (obj.name && obj.version){
-						let name = obj.name.replace(/ /g, '_');
-						let version = obj.version;
+				if (obj.name && obj.version){
+					let name = obj.name.replace(/ /g, '_');
+					let version = obj.version;
 
-						if (obj.classes){
-							for (let cls of obj.classes){
-								let dfnObj = {
-									_id: cls.class,
-									emittarget: cls.emittarget || cls.class,
-									description: cls.description,
+					if (obj.classes){
+						for (let cls of obj.classes){
+							let dfnObj = {
+								_id: cls.class,
+								emittarget: cls.emittarget || cls.class,
+								description: cls.description,
+								storageType: 'private'
+							};
+							for (let txt of cls.texts){
+								let txtObj = {
+									_id: `${name}_${cntr++}_v${version}`,
+									class: cls.class,
+									text: txt,
 									storageType: 'private'
 								};
-								for (let txt of cls.texts){
-									let txtObj = {
-										_id: `${name}_${cntr++}_v${version}`,
-										class: cls.class,
-										text: txt,
-										storageType: 'private'
-									};
-									ps.push(db.put(txtObj));
-								}
-								// check parameters are fully defined with a values list
-								if (cls.parameters){
-									for (let p of cls.parameters){
-										if (!p.values){
-											// check global parameter.values
-											if (obj[PARAMETER_VALUES]){
-												let vals = obj[PARAMETER_VALUES];
-												for (let v of vals){
-													if (v.name === p.name){
-														p.values = {
-															$ref: `${name}_${p.name}`
-														};
-														break;
-													}
+								ps.push(db.put(txtObj));
+							}
+							// check parameters are fully defined with a values list
+							if (cls.parameters){
+								for (let p of cls.parameters){
+									if (!p.values){
+										// check global parameter.values
+										if (obj[PARAMETER_VALUES]){
+											let vals = obj[PARAMETER_VALUES];
+											for (let v of vals){
+												if (v.name === p.name){
+													p.values = {
+														$ref: `${name}_${p.name}`
+													};
+													break;
 												}
 											}
 										}
-										if (p.entityfunction) {
-											p.entityfunction = `${name}_${p.entityfunction}`;
-										}
+									}
+									if (p.entityfunction) {
+										p.entityfunction = `${name}_${p.entityfunction}`;
 									}
 								}
-								dfnObj.parameters = cls.parameters;
-								ps.push(db.put(dfnObj));
 							}
+							dfnObj.parameters = cls.parameters;
+							ps.push(db.put(dfnObj));
 						}
+					}
 
-						if (obj[PARAMETER_VALUES]){
-							for (let p of obj[PARAMETER_VALUES]){
-								p._id = `${name}_${p.name}`;
-								delete p.name;
-								p.storageType = 'private';
-								ps.push(db.put(p));
-							}
+					if (obj[PARAMETER_VALUES]){
+						for (let p of obj[PARAMETER_VALUES]){
+							p._id = `${name}_${p.name}`;
+							delete p.name;
+							p.storageType = 'private';
+							ps.push(db.put(p));
 						}
+					}
 
-						if (ps.length > 0){
-							Promise.all(ps).then(() => {
-								resolve(db);
-							}).catch((err) => {
-								reject(err);
-							});
-						}
-						else {
-							reject('unrecognized JSON structure');
-						}
+					if (ps.length > 0){
+						Promise.all(ps).then(() => {
+							resolve(db);
+						}).catch((err) => {
+							reject(err);
+						});
 					}
 					else {
-						reject('name and version is required in the NLC JSON configuration file');
+						reject('unrecognized JSON structure');
 					}
 				}
-			});
-
+				else {
+					reject('name and version is required in the NLC JSON configuration file');
+				}
+			}
 		});
 	});
 };

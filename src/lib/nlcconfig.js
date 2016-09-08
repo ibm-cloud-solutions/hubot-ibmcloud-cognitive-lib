@@ -5,8 +5,9 @@
   * disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
   */
 'use strict';
-
-const nlcDb = require('./nlcDb');
+const env = require('./env');
+const DBManager = require('./dbManager');
+const nlcDb = new DBManager({localDbName: 'nlc', remoteDbName: env.cloudantDb});
 
 const NLCCONFIG_KEY = Symbol.for('hubot-ibmcloud-cognitive-lib-nlcconfig');
 
@@ -31,9 +32,7 @@ Object.defineProperty(singleton, 'instance', {
  * @return	[]		Array of class definitions for all classes (emit target, textfile, and parameters).
  */
 exports.getAllClasses = function(approvedAfterDate) {
-	return nlcDb.open().then((db) => {
-		return nlcDb.getClasses(approvedAfterDate);
-	});
+	return nlcDb.getClasses(approvedAfterDate);
 };
 
 /**
