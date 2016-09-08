@@ -28,11 +28,9 @@ function DBManager(options){
 		logger.error(`${TAG}: options.localDbName must be provided.`);
 	}
 
-	this.localDbName = options.localDbName;
-	this.remoteDbName = options.remoteDbName ? options.remoteDbName : options.localDbName;
-
+	this.localDbName = (typeof options === 'string') ? options : options.localDbName;
+	this.remoteDbName = options.remoteDbName ? options.remoteDbName : this.localDbName;
 	this.db = PouchDB.open(options.localDbName);
-	this.opts = options;
 
 	initializeDB(this.db).then(() => {
 		syncFn(this.db, this.localDbName, this.remoteDbName);
@@ -90,7 +88,7 @@ function syncFn(db, localDbName, remoteDbName){
 				logger.info(`${TAG}: Completed sync of NLC training data with Cloudant.`);
 				logger.debug(`${TAG}: Cloudant sync results.`, info);
 
-				setTimeout(syncFn, env.syncInterval);
+				setTimeout(syncFn(db, localDbName, remoteDbName), env.syncInterval);
 			})
 			.on('denied', function(err){
 				logger.error(`${TAG}: Replication of NLC training data record denied.`, err);
