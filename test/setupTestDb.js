@@ -91,6 +91,18 @@ const open = new Promise((resolve, reject) => {
 			text: 'should see this'
 		});
 	}).then(() => {
+		return db.put({
+			_id: 'cd02b5x110-rr-0000',
+			type: 'ranker_data',
+			trainedData: 'This ranker should be deleted.'
+		});
+	}).then(() => {
+		return db.put({
+			_id: 'ranker-data-123',
+			type: 'ranker_data',
+			trainedData: 'Sample ranking text,ranking\nSample ranking text 2,ranking\nSample ranking text 3,ranking3'
+		});
+	}).then(() => {
 		resolve(db);
 	}).catch((err) => {
 		reject(err);

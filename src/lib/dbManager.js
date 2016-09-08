@@ -210,6 +210,44 @@ DBManager.prototype.info = function(opts){
 };
 
 
+// ************** RR specific methods ******************************* //
+
+DBManager.prototype.getRRClasses = function(){
+	// assumption that the database can be held in memory
+	// note classifier will break if this is not the case
+	// return an array of [text, className]
+	return new Promise((resolve, reject) => {
+		let result = [];
+		if (this.db){
+			// get all of the class types
+			return this.db.query(classesView, {
+				include_docs: true
+			}).then((res) => {
+				for (let row of res.rows){
+					let className = row.key;
+					// allow short hand assignment for classifications
+					let text = row.doc.text || row.doc.classification.text;
+					if (result.length > 0 && result[result.length - 1].indexOf(className) !== -1) {
+						result[result.length - 1] = [className, result[result.length - 1][1] + ',' + text];
+					}
+					else {
+						result.push([
+							className, text
+						]);
+					}
+				}
+				return resolve(result);
+			}).catch(function(err) {
+				reject(err);
+			});
+		}
+		else {
+			reject('Database needs to be open before calling getLocalClasses');
+		}
+	});
+};
+
+
 // ************** NLC specific methods ******************************* //
 
 /**

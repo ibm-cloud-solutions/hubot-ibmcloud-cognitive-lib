@@ -1,0 +1,11 @@
+{
+  "clusters": [
+    {
+      "solr_cluster_id": "cd02b5x110-rr-5103",
+      "cluster_name": "test-cluster",
+      "cluster_size": "",
+      "solr_cluster_status": "READY"
+
+    }
+  ]
+}

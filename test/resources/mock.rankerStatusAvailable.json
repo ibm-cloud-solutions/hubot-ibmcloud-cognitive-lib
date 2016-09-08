@@ -1,0 +1,8 @@
+{
+  "ranker_id": "cd02b5x110-rr-5110",
+  "name": "test-ranker",
+  "created": "2016-06-29T19:09:59.000Z",
+  "url": "https://gateway-s.watsonplatform.net/retrieve-and-rank/api/v1/rankers/cd02b5x110-rr-5110",
+  "status": "Available",
+  "status_description": "The ranker instance is now available and is ready to take ranker requests."
+}

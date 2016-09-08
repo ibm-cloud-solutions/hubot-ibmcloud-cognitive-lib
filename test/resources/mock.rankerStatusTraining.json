@@ -1,0 +1,19 @@
+{
+  "testRanker":
+  {
+    "ranker_id": "cd02b5x110-rr-5110",
+    "name": "test-ranker",
+    "created": "2016-06-29T19:09:59.000Z",
+    "url": "https://gateway-s.watsonplatform.net/retrieve-and-rank/api/v1/rankers/cd02b5x110-rr-5110",
+    "status": "Training",
+    "status_description": "The ranker instance is in its training phase, not yet ready to accept classify requests"
+  },
+  "testRanker3": {
+    "ranker_id": "cd02b5x110-rr-9999",
+    "name": "test-ranker3",
+    "created": "2016-06-29T19:09:59.000Z",
+    "url": "https://gateway-s.watsonplatform.net/retrieve-and-rank/api/v1/rankers/cd02b5x110-rr-9999",
+    "status": "Training",
+    "status_description": "The ranker instance is in its training phase, not yet ready to accept classify requests"
+  }
+}
