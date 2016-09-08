@@ -45,7 +45,7 @@ describe('Testing NLC Configuration', function() {
 
 		it('Verify getAllClasses(approvedAfterDate) - with new Date() object', function(){
 			return nlcconfig.getAllClasses(new Date(Date.now() - 1000)).then(function(classes) {
-				expect(classes.length).to.be.eql(1);
+				expect(classes.length).to.be.eql(3);
 				expect(classes[0][0]).to.be.eql('should see this');
 				expect(classes[0][1]).to.be.eql('approved');
 			});
@@ -53,7 +53,7 @@ describe('Testing NLC Configuration', function() {
 
 		it('Verify getAllClasses(approvedAfterDate) - with date in ms', function(){
 			return nlcconfig.getAllClasses(Date.now() - 1000).then(function(classes) {
-				expect(classes.length).to.be.eql(1);
+				expect(classes.length).to.be.eql(3);
 				expect(classes[0][0]).to.be.eql('should see this');
 				expect(classes[0][1]).to.be.eql('approved');
 			});

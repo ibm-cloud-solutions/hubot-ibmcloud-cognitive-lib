@@ -93,6 +93,15 @@ function syncFn(db, localDbName, remoteDbName){
 	}
 };
 
+/**
+ * @deprecated Keeping this here for compability with the previous implementation, must remove once dependencies are updated.
+ */
+DBManager.prototype.open = function() {
+	return new Promise((resolve, reject) => {
+		resolve(this.db);
+	});
+};
+
 
 DBManager.prototype.get = function(docId) {
 	return this.db.get(docId);
