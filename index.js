@@ -11,4 +11,3 @@ module.exports.nlcconfig = require('./src/lib/nlcconfig');
 module.exports.nlcManager = require('./src/lib/nlcManager');
 module.exports.hubotPouch = require('./src/lib/PouchDB');
 module.exports.nlcDb = new DBManager('nlc');
-module.exports.rrManager = require('./src/lib/rrManager');
