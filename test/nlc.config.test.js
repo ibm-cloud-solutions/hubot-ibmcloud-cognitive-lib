@@ -86,7 +86,11 @@ describe('Testing NLC Configuration', function() {
 		it('Verify setAutoApprove sets correct value', function() {
 			nlcconfig.setAutoApprove(false);
 			expect(nlcconfig.getAutoApprove()).to.eql(false);
+		});
+
+		it('Verify setAutoApprove sets correct value', function() {
 			nlcconfig.setAutoApprove(true);
+			expect(nlcconfig.getAutoApprove()).to.eql(true);
 		});
 	});
 

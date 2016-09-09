@@ -15,9 +15,10 @@ const csvParse = require('csv-parse');
 const logger = require('./logger');
 const DBManager = require('./dbManager');
 const nlcDb = new DBManager({localDbName: 'nlc', remoteDbName: env.cloudantDb});
+const nlcConfig = require('./nlcconfig');
 
 /**
- * @param options Object with the following configuration.
+ * @param {options} Object with the following configuration.
  *        options.url = Watson NLC API URL (OPTIONAL, defaults to https://gateway.watsonplatform.net/natural-language-classifier/api)
  *        options.username = Watson NLC username (REQUIRED)
  *        options.password = Watson NLC password (REQUIRED)
@@ -221,7 +222,7 @@ NLCManager.prototype._startTraining = function(){
 
 		// Training data from PouchDB.
 		else {
-			return nlcDb.getClasses().then((csvInput) => {
+			return nlcConfig.getAllClasses().then((csvInput) => {
 				stringify(csvInput, (err, csvStream) => {
 					if (err){
 						logger.error(`${TAG}: Error generating training data in csv format.`, err);
