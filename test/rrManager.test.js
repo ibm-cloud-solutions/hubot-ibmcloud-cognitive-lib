@@ -87,7 +87,6 @@ describe('Test the RRManager library', function(){
 
 		it('should setup from start to finish', function(done){
 			watson_rr.setupCluster().then(function(result){
-				// console.log(result);
 				expect(result.solr_cluster_id).to.be.equal('sc117-13225-sjd27');
 				done();
 			});

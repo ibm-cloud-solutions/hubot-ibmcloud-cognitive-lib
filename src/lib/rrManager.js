@@ -17,6 +17,7 @@ const logger = require('./logger');
 const fs = require('fs');
 const qs = require('qs');
 const request = require('request');
+const rrConfig = require('./rrconfig');
 
 /**
  * @param options Object with the following configuration.
@@ -322,7 +323,7 @@ RRManager.prototype._setupCluster = function(){
 					});
 				}
 				else {
-					rrDb.getDocuments().then((jsonInput) => {
+					rrConfig.getDocuments().then((jsonInput) => {
 						return this._uploadDocuments(jsonInput);
 					}).catch((error) => {
 						reject(error);
@@ -366,7 +367,7 @@ RRManager.prototype._startTraining = function(){
 
 		// Training data from PouchDB.
 		else {
-			rrDb.getRRClasses().then((csvInput) => {
+			rrConfig.getRRClasses().then((csvInput) => {
 				let csv_text = 'question_id,f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,r1,r2,s,ground_truth\n';
 				let fcselect_calls = [];
 				for (let i = 0; i < csvInput.length; i++){

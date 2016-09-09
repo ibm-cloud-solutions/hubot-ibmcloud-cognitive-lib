@@ -13,10 +13,15 @@ const PouchDB = require('./PouchDB');
 
 const pjson = require(path.resolve(process.cwd(), 'package.json'));
 const classesDesignDoc = '_design/classes';
-const classesView = 'classes/byClass';
-const targetView = 'classes/byTarget';
 
 let managedDBs = {};
+/**
+ * Provides access to a local database instance and manages its replication.
+ *
+ * @param {options} Object with the following configuration.
+ *        options.localDbName = Name of local db, such as nlc.
+ *        options.remoteDbName = Name of the remote database to use for replication.
+ */
 function DBManager(options){
 	// Reuse existing dbManager instances whenever possible
 	if (managedDBs[options.localDbName] !== undefined){
@@ -30,12 +35,12 @@ function DBManager(options){
 
 	this.localDbName = (typeof options === 'string') ? options : options.localDbName;
 	this.remoteDbName = options.remoteDbName ? options.remoteDbName : this.localDbName;
-	this.db = PouchDB.open(options.localDbName);
+	this.db = PouchDB.open(this.localDbName);
 
 	initializeDB(this.db).then(() => {
 		syncFn(this.db, this.localDbName, this.remoteDbName);
 	}).catch((error) => {
-		logger.error(`${TAG}: Unable to start sync for [${options.localDbName}] because`, error);
+		logger.error(`${TAG}: Unable to start sync for [${this.localDbName}] because`, error);
 	});
 
 	managedDBs[this.localDbName] = this;
@@ -88,15 +93,20 @@ function syncFn(db, localDbName, remoteDbName){
 				logger.info(`${TAG}: Completed sync of NLC training data with Cloudant.`);
 				logger.debug(`${TAG}: Cloudant sync results.`, info);
 
-				setTimeout(syncFn(db, localDbName, remoteDbName), env.syncInterval);
+				setTimeout(function(){
+					syncFn(db, localDbName, remoteDbName);
+				}, env.syncInterval);
 			})
 			.on('denied', function(err){
-				logger.error(`${TAG}: Replication of NLC training data record denied.`, err);
+				logger.error(`${TAG}: Authorization problem during sync of database [${localDbName}] with remote Cloudant database [${remoteDbName}].`, err);
 			})
 			.on('error', function(err){
 				let retryInterval = Math.min(env.syncInterval, 1000 * 60);
-				logger.error(`${TAG}: Error during sync of NLC training data with Cloudant. Will retry in ${Math.floor(retryInterval / 1000)} seconds.`, err);
-				setTimeout(syncFn, retryInterval);
+				logger.error(`${TAG}: Error during sync of database [${localDbName}] with remote Cloudant database [${remoteDbName}]. Will retry in ${Math.floor(retryInterval / 1000)} seconds.`, err);
+
+				setTimeout(function(){
+					syncFn(db, localDbName, remoteDbName);
+				}, retryInterval);
 			});
 	}
 	else {
@@ -113,14 +123,27 @@ DBManager.prototype.open = function() {
 	});
 };
 
-
+/**
+ * Retrieve a document from the database.
+ * @param  {String} docId ID of the document.
+ * @return {Object}       Retrieved document.
+ */
 DBManager.prototype.get = function(docId) {
 	return this.db.get(docId);
 };
 
-
+/**
+ * Saves a document to the database
+ * @param  {Object} doc Document to save in the database
+ * @return {Object}     Result of the save operation
+ */
 DBManager.prototype.put = function(doc){
 	return this.db.put(doc);
+};
+
+
+DBManager.prototype.query = function(view, opts) {
+	return this.db.query(view, opts);
 };
 
 
@@ -189,6 +212,11 @@ DBManager.prototype.createOrUpdate = function(newDoc){
 };
 
 
+/**
+ * Retrieves information for the database
+ * @param  {Obect} opts CouchDB options
+ * @return {Object}     CouchDB information about the database.
+ */
 DBManager.prototype.info = function(opts){
 	return new Promise((resolve, reject) => {
 		if (this.db){
@@ -207,177 +235,6 @@ DBManager.prototype.info = function(opts){
 			reject('Database needs to be open before calling info');
 		}
 	});
-};
-
-
-// ************** RR specific methods ******************************* //
-
-DBManager.prototype.getRRClasses = function(){
-	// assumption that the database can be held in memory
-	// note classifier will break if this is not the case
-	// return an array of [text, className]
-	return new Promise((resolve, reject) => {
-		let result = [];
-		if (this.db){
-			// get all of the class types
-			return this.db.query(classesView, {
-				include_docs: true
-			}).then((res) => {
-				for (let row of res.rows){
-					let className = row.key;
-					// allow short hand assignment for classifications
-					let text = row.doc.text || row.doc.classification.text;
-					if (result.length > 0 && result[result.length - 1].indexOf(className) !== -1) {
-						result[result.length - 1] = [className, result[result.length - 1][1] + ',' + text];
-					}
-					else {
-						result.push([
-							className, text
-						]);
-					}
-				}
-				return resolve(result);
-			}).catch(function(err) {
-				reject(err);
-			});
-		}
-		else {
-			reject('Database needs to be open before calling getLocalClasses');
-		}
-	});
-};
-
-
-// ************** NLC specific methods ******************************* //
-
-/**
- * Return configuration associated with a specific class name.
- *
- * @param  string className 	Name of the NLC classification.
- * @return {}           		Return object contains the following keys. {class, description, target, parameters}
- */
-DBManager.prototype.getClassEmitTarget = function(className){
-	return this.db.query(targetView, {
-		key: className
-	}).then((result) => {
-		if (result.rows.length > 0){
-			let resp = {
-				class: result.rows[0].id,
-				description: result.rows[0].value.length >= 3 ? result.rows[0].value[2] : result.rows[0].id,
-				target: result.rows[0].value[0],
-				parameters: result.rows[0].value[1]
-			};
-
-			// loop through and resolve $ref if defined
-			if (resp.parameters){
-				let ps = [];
-				for (let p of resp.parameters){
-					ps.push(
-						new Promise((resolve, reject) => {
-							if (p.values && !Array.isArray(p.values)){
-								if (p.values.$ref){
-									let ref = p.values.$ref;
-									return this.db.get(ref).then((doc) => {
-										if (doc.values){
-											p.values = doc.values;
-											resolve(p);
-										}
-										else {
-											resolve(p);
-										}
-									});
-								}
-								else {
-									// skip over, return object
-									resolve(p);
-								}
-							}
-							else {
-								resolve(p);
-							}
-						})
-					);
-				}
-				return Promise.all(ps).then((params) => {
-					resp.parameters = params;
-					return resp;
-				}).catch(() => {
-					// can't execute this emit target, so return null
-					logger.error(`${TAG} Couldn't resolve parameters for class ${className}. This is likely caused by incorrect data in the database. Was trying to resolve initial params`, resp.parameters);
-					return null;
-				});
-			}
-			else {
-				// no parameters
-				return resp;
-			}
-		}
-		else {
-			logger.error(`${TAG} Class ${className} doesn't exist in the database. This is likely an indication of (1) the Watson NLC needs to be re-trained with the current data, or (2) a problem initializing or synchronizing the database.`);
-			return null;
-		}
-	});
-};
-
-DBManager.prototype.getClasses = function(approvedAfterDate){
-	// assumption that the database can be held in memory
-	// note classifier will break if this is not the case
-	// return an array of [text, className]
-	return new Promise((resolve, reject) => {
-		let result = [];
-		if (this.db){
-			// get all of the class types
-			return this.db.query(classesView, {
-				include_docs: true
-			}).then((res) => {
-				if (approvedAfterDate && typeof approvedAfterDate === 'number'){
-					approvedAfterDate = new Date(approvedAfterDate);
-				}
-
-				for (let row of res.rows){
-					// Filter records without an approvedDate or approved before the given date.
-					if (approvedAfterDate) {
-						if (row.doc.approved){
-							let approvedDate = row.doc.approved_timestamp || row.doc.approved;
-							if (new Date(parseInt(approvedDate, 10)) < approvedAfterDate){
-								continue;
-							}
-						}
-						else {
-							continue;
-						}
-					}
-
-					let className = row.key;
-					// allow short hand assignment for classifications
-					let text = row.doc.text || row.doc.classification.text;
-					result.push([
-						text, className
-					]);
-				}
-				return resolve(result);
-			}).catch(function(err) {
-				reject(err);
-			});
-		}
-		else {
-			reject('Database needs to be open before calling getLocalClasses');
-		}
-	});
-};
-
-
-DBManager.prototype.getAutoApprove = function() {
-	return env.truthy(env.nlc_autoApprove);
-};
-
-DBManager.prototype.setAutoApprove = function(approve) {
-	if (typeof (approve) === 'boolean') {
-		env.nlc_autoApprove = approve;
-	}
-	else {
-		env.nlc_autoApprove = false;
-	}
 };
 
 

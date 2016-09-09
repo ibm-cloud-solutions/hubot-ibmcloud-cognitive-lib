@@ -102,21 +102,4 @@ describe('Testing of database.', function() {
 		});
 
 	});
-
-	context('Verify Auto Approve setter/getter', function() {
-		it('Verify getAutoApprove contains correct value', function() {
-			expect(this.db.getAutoApprove()).to.eql(true);
-		});
-
-		it('Verify setAutoApprove sets false when input is not boolean', function() {
-			this.db.setAutoApprove('invalid');
-			expect(this.db.getAutoApprove()).to.eql(false);
-		});
-
-		it('Verify setAutoApprove sets correct value', function() {
-			this.db.setAutoApprove(true);
-			expect(this.db.getAutoApprove()).to.eql(true);
-		});
-	});
-
 });
