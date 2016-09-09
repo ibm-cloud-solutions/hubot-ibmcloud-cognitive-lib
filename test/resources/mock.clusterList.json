@@ -1,7 +1,7 @@
 {
   "clusters": [
     {
-      "solr_cluster_id": "cd02b5x110-rr-5103",
+      "solr_cluster_id": "sc8675309-s117",
       "cluster_name": "test-cluster",
       "cluster_size": "",
       "solr_cluster_status": "READY"

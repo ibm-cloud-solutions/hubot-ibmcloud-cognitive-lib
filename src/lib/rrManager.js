@@ -266,6 +266,7 @@ RRManager.prototype._deleteCluster = function(params){
 				reject('Error deleting solr cluster');
 			}
 			else {
+				this.cluster_cache = undefined;
 				resolve(response);
 			}
 		});
@@ -715,7 +716,6 @@ RRManager.prototype._deleteOldRankers = function(){
  */
 RRManager.prototype._getCluster = function(doNotCreate){
 	return new Promise((resolve, reject) => {
-
 		if (this.cluster_cache){
 			logger.debug(`Using cached RR cluster ${this.cluster_cache.cluster_id}`);
 			resolve(this.cluster_cache);

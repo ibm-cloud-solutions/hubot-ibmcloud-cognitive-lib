@@ -91,6 +91,19 @@ describe('Test the RRManager library', function(){
 				done();
 			});
 		});
+
+		it('should delete a cluster and all rankers', function(done){
+			watson_rr.deleteCluster().then((result) => {
+				expect(result).to.exist;
+				return watson_rr._getCluster(true);
+			}).then((result2) => {
+				expect(result2).to.not.exist();
+			}, (error) => {
+				console.log('error: ' + error);
+				expect(error).to.be.eql('No clusters found under [test-cluster]');
+				done();
+			});
+		});
 	});
 
 	describe('Test the cluster/ranker methods', function(){

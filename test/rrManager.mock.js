@@ -48,7 +48,7 @@ module.exports = {
 		.reply(200, clusterList);
 
 		// Mock route for cluster status.
-		rrScope.get('/v1/solr_clusters/cd02b5x110-rr-5103')
+		rrScope.get('/v1/solr_clusters/sc8675309-s117')
 		.reply(200, mockClusterStatusReadyResults);
 
 		// Mock route for ranker status.
@@ -117,15 +117,15 @@ module.exports = {
 		});
 
 		// Mock route for cluster status.
-		rrErrorScope.get('/v1/solr_clusters/cd02b5x110-rr-5103')
+		rrErrorScope.get('/v1/solr_clusters/sc8675309-s117')
 		.reply(200, mockClusterStatusReadyResults);
-
 	},
 
 	setupSolrMockery: function() {
 		nock.cleanAll();
 		nock.disableNetConnect();
 		let rrSolrScope = nock(rrEndpoint).persist();
+		let clusterList2 = { clusters: [] };
 		let newCluster = {
 			solr_cluster_id: 'sc117-13225-sjd27',
 			cluster_name: 'test-cluster',
@@ -145,18 +145,22 @@ module.exports = {
 
 		// Mock route to list all clusters.
 		rrSolrScope.get('/v1/solr_clusters')
-		.reply(200, {clusters: []});
+		.reply(200, function(){
+			return clusterList2;
+		});
 
 		// Mock route for creating solr cluster
 		rrSolrScope.post('/v1/solr_clusters')
-		.reply(200, newCluster);
+		.reply(200, function(){
+			clusterList2.clusters.push(newCluster);
+			return newCluster;
+		});
 
 		// Mock route for getting solr cluster info
 		rrSolrScope.get('/v1/solr_clusters/sc117-13225-sjd27')
 		.reply(200, function(){
-			let cluster = newCluster;
-			cluster.solr_cluster_status = 'READY';
-			return cluster;
+			clusterList2.clusters[0].solr_cluster_status = 'READY';
+			return clusterList2.clusters[0];
 		});
 
 		// Mock route for uploading config
@@ -170,5 +174,65 @@ module.exports = {
 		// Mock route for posting documents
 		rrSolrScope.post('/v1/solr_clusters/sc117-13225-sjd27/solr/test-collection/update/json?&wt=json')
 		.reply(200, doc_res);
+
+		// Mock route for deleting a cluster, deletes it from our mock list of clusters.
+		rrSolrScope.delete('/v1/solr_clusters/sc117-13225-sjd27')
+		.reply(200, function(uri, requestBody) {
+			clusterList2.clusters = clusterList2.clusters.filter(function(item){
+				return item.solr_cluster_id !== 'sc117-13225-sjd27';
+			});
+			return {};
+		});
+
+		// Mock route to list all rankers.
+		rrSolrScope.get('/v1/rankers')
+		.reply(200, function(){
+			return rankerList;
+		});
+
+		// Mock routes to delete rankers
+		rrSolrScope.delete('/v1/rankers/cd02b5x110-rr-5110')
+		.reply(200, function(uri, requestBody){
+			rankerList.rankers = rankerList.rankers.filter(function(item){
+				return item.ranker_id !== 'cd02b5x110-rr-5110';
+			});
+			return {};
+		});
+		rrSolrScope.delete('/v1/rankers/cd02b5x110-rr-5103')
+		.reply(200, function(uri, requestBody){
+			rankerList.rankers = rankerList.rankers.filter(function(item){
+				return item.ranker_id !== 'cd02b5x110-rr-5103';
+			});
+			return {};
+		});
+		rrSolrScope.delete('/v1/rankers/cd02b5x110-rr-5074')
+		.reply(200, function(uri, requestBody){
+			rankerList.rankers = rankerList.rankers.filter(function(item){
+				return item.ranker_id !== 'cd02b5x110-rr-5074';
+			});
+			return {};
+		});
+		rrSolrScope.delete('/v1/rankers/cd02b5x110-rr-0000')
+		.reply(200, function(uri, requestBody){
+			rankerList.rankers = rankerList.rankers.filter(function(item){
+				return item.ranker_id !== 'cd02b5x110-rr-0000';
+			});
+			return {};
+		});
+		rrSolrScope.delete('/v1/rankers/cd02b5x110-rr-9999')
+		.reply(200, function(uri, requestBody){
+			rankerList.rankers = rankerList.rankers.filter(function(item){
+				return item.ranker_id !== 'cd02b5x110-rr-9999';
+			});
+			return {};
+		});
+		rrSolrScope.delete('/v1/rankers/cd02b5x110-rr-8888')
+		.reply(200, function(uri, requestBody){
+			rankerList.rankers = rankerList.rankers.filter(function(item){
+				return item.ranker_id !== 'cd02b5x110-rr-8888';
+			});
+			return {};
+		});
+
 	}
 };
