@@ -23,7 +23,19 @@ const clusterList = require(path.resolve(__dirname, 'resources', 'mock.clusterLi
 
 module.exports = {
 	setupMockery: function() {
+		nock.cleanAll();
+		nock.disableNetConnect();
 		let rrScope = nock(rrEndpoint).persist();
+		let doc_res = {
+			responseHeader: {
+				status: 0,
+				QTime: 2784
+			}
+		};
+
+		// Mock route for posting documents
+		rrScope.post('/v1/solr_clusters/sc8675309-s117/solr/test-collection/update/json?&wt=json')
+		.reply(200, doc_res);
 
 		// Mock route to list all rankers.
 		rrScope.get('/v1/rankers')
@@ -33,9 +45,7 @@ module.exports = {
 
 		// Mock route to list all clusters.
 		rrScope.get('/v1/solr_clusters')
-		.reply(200, function(){
-			return clusterList;
-		});
+		.reply(200, clusterList);
 
 		// Mock route for cluster status.
 		rrScope.get('/v1/solr_clusters/cd02b5x110-rr-5103')
@@ -110,5 +120,55 @@ module.exports = {
 		rrErrorScope.get('/v1/solr_clusters/cd02b5x110-rr-5103')
 		.reply(200, mockClusterStatusReadyResults);
 
+	},
+
+	setupSolrMockery: function() {
+		nock.cleanAll();
+		nock.disableNetConnect();
+		let rrSolrScope = nock(rrEndpoint).persist();
+		let newCluster = {
+			solr_cluster_id: 'sc117-13225-sjd27',
+			cluster_name: 'test-cluster',
+			cluster_size: '',
+			solr_cluster_status: 'NOT_AVAILABLE'
+		};
+		let config_res = {
+			responseHeader: {status: 0, QTime: 1627},
+			core: 'test_collection_shard1_replica1'
+		};
+		let doc_res = {
+			responseHeader: {
+				status: 0,
+				QTime: 2784
+			}
+		};
+
+		// Mock route to list all clusters.
+		rrSolrScope.get('/v1/solr_clusters')
+		.reply(200, {clusters: []});
+
+		// Mock route for creating solr cluster
+		rrSolrScope.post('/v1/solr_clusters')
+		.reply(200, newCluster);
+
+		// Mock route for getting solr cluster info
+		rrSolrScope.get('/v1/solr_clusters/sc117-13225-sjd27')
+		.reply(200, function(){
+			let cluster = newCluster;
+			cluster.solr_cluster_status = 'READY';
+			return cluster;
+		});
+
+		// Mock route for uploading config
+		rrSolrScope.post('/v1/solr_clusters/sc117-13225-sjd27/config/test-config')
+		.reply(200, {});
+
+		// Mock route for creating collection
+		rrSolrScope.post('/v1/solr_clusters/sc117-13225-sjd27/solr/admin/collections?collection.configName=test-config&name=test-collection&wt=json&action=CREATE')
+		.reply(200, config_res);
+
+		// Mock route for posting documents
+		rrSolrScope.post('/v1/solr_clusters/sc117-13225-sjd27/solr/test-collection/update/json?&wt=json')
+		.reply(200, doc_res);
 	}
 };
