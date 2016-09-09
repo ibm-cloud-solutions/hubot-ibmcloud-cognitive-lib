@@ -190,46 +190,11 @@ module.exports = {
 			return rankerList;
 		});
 
-		// Mock routes to delete rankers
-		rrSolrScope.delete('/v1/rankers/cd02b5x110-rr-5110')
-		.reply(200, function(uri, requestBody){
-			rankerList.rankers = rankerList.rankers.filter(function(item){
-				return item.ranker_id !== 'cd02b5x110-rr-5110';
-			});
-			return {};
-		});
-		rrSolrScope.delete('/v1/rankers/cd02b5x110-rr-5103')
-		.reply(200, function(uri, requestBody){
-			rankerList.rankers = rankerList.rankers.filter(function(item){
-				return item.ranker_id !== 'cd02b5x110-rr-5103';
-			});
-			return {};
-		});
-		rrSolrScope.delete('/v1/rankers/cd02b5x110-rr-5074')
-		.reply(200, function(uri, requestBody){
-			rankerList.rankers = rankerList.rankers.filter(function(item){
-				return item.ranker_id !== 'cd02b5x110-rr-5074';
-			});
-			return {};
-		});
+		// Mock routes to delete ranker
 		rrSolrScope.delete('/v1/rankers/cd02b5x110-rr-0000')
 		.reply(200, function(uri, requestBody){
 			rankerList.rankers = rankerList.rankers.filter(function(item){
 				return item.ranker_id !== 'cd02b5x110-rr-0000';
-			});
-			return {};
-		});
-		rrSolrScope.delete('/v1/rankers/cd02b5x110-rr-9999')
-		.reply(200, function(uri, requestBody){
-			rankerList.rankers = rankerList.rankers.filter(function(item){
-				return item.ranker_id !== 'cd02b5x110-rr-9999';
-			});
-			return {};
-		});
-		rrSolrScope.delete('/v1/rankers/cd02b5x110-rr-8888')
-		.reply(200, function(uri, requestBody){
-			rankerList.rankers = rankerList.rankers.filter(function(item){
-				return item.ranker_id !== 'cd02b5x110-rr-8888';
 			});
 			return {};
 		});

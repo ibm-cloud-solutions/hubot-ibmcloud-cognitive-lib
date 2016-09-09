@@ -86,7 +86,8 @@ describe('Test the RRManager library', function(){
 		});
 
 		it('should setup from start to finish', function(done){
-			watson_rr.setupIfNeeded().then(function(result){
+			watson_rr.setupCluster().then(function(result){
+				// console.log(result);
 				expect(result.solr_cluster_id).to.be.equal('sc117-13225-sjd27');
 				done();
 			});
@@ -99,7 +100,6 @@ describe('Test the RRManager library', function(){
 			}).then((result2) => {
 				expect(result2).to.not.exist();
 			}, (error) => {
-				console.log('error: ' + error);
 				expect(error).to.be.eql('No clusters found under [test-cluster]');
 				done();
 			});

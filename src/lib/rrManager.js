@@ -293,7 +293,6 @@ RRManager.prototype._setupCluster = function(){
 			let params = {
 				cluster_name: this.opts.clusterName
 			};
-
 			this._createCluster(params).then((result) => {
 				return this._monitorCluster(result.solr_cluster_id);
 			}).then((result) => {
@@ -330,7 +329,7 @@ RRManager.prototype._setupCluster = function(){
 					});
 				}
 			}).then((result) => {
-				resolve(result);
+				resolve(this.cluster_cache);
 			}).catch((err) => {
 				reject(err);
 			});
