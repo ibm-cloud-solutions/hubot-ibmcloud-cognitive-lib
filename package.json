@@ -51,7 +51,6 @@
     "pouchdb": "^5.4.5",
     "pouchdb-memory": "^1.1.0",
     "qs": "^6.2.1",
-    "request": "^2.74.0",
     "string-length": "^1.0.1",
     "winston": "^2.2.0"
   },

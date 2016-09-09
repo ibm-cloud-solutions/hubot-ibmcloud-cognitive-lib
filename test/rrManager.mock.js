@@ -19,6 +19,8 @@ const mockRankerStatusUnavailableResults = require(path.resolve(__dirname, 'reso
 const mockRSInputs = require(path.resolve(__dirname, 'resources', 'mock.RSInputs.json'));
 
 const rankerList = require(path.resolve(__dirname, 'resources', 'mock.rankerList.json'));
+const rankerList2 = { rankers: [] };
+rankerList2.rankers = Array.from(rankerList.rankers);
 const clusterList = require(path.resolve(__dirname, 'resources', 'mock.clusterList.json'));
 
 module.exports = {
@@ -103,11 +105,11 @@ module.exports = {
 		.reply(400, {});
 
 		// Mock routes to get training data for ranker training
-		rrErrorScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=mySelection&gt=undefined%2Cundefined&returnRSInput=true&rows=10&wt=json&fl=id')
+		rrErrorScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=mySelection&gt=undefined%2Cundefined&returnRSInput=true&rows=10&fl=id&wt=json')
 		.reply(200, mockRSInputs);
-		rrErrorScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=approved&gt=should%20see%20this&returnRSInput=true&rows=10&wt=json&fl=id')
+		rrErrorScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=approved&gt=should%20see%20this&returnRSInput=true&rows=10&fl=id&wt=json')
 		.reply(200, mockRSInputs);
-		rrErrorScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=test.class&gt=test%20data&returnRSInput=true&rows=10&wt=json&fl=id')
+		rrErrorScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=test.class&gt=test%20data&returnRSInput=true&rows=10&fl=id&wt=json')
 		.reply(200, mockRSInputs);
 
 		// Mock route to list all clusters.
@@ -187,17 +189,37 @@ module.exports = {
 		// Mock route to list all rankers.
 		rrSolrScope.get('/v1/rankers')
 		.reply(200, function(){
-			return rankerList;
+			return rankerList2;
 		});
 
 		// Mock routes to delete ranker
 		rrSolrScope.delete('/v1/rankers/cd02b5x110-rr-0000')
 		.reply(200, function(uri, requestBody){
-			rankerList.rankers = rankerList.rankers.filter(function(item){
+			rankerList2.rankers = rankerList2.rankers.filter(function(item){
 				return item.ranker_id !== 'cd02b5x110-rr-0000';
 			});
 			return {};
 		});
-
+		rrSolrScope.delete('/v1/rankers/cd02b5x110-rr-5110')
+		.reply(200, function(uri, requestBody){
+			rankerList2.rankers = rankerList2.rankers.filter(function(item){
+				return item.ranker_id !== 'cd02b5x110-rr-5110';
+			});
+			return {};
+		});
+		rrSolrScope.delete('/v1/rankers/cd02b5x110-rr-5103')
+		.reply(200, function(uri, requestBody){
+			rankerList2.rankers = rankerList2.rankers.filter(function(item){
+				return item.ranker_id !== 'cd02b5x110-rr-5103';
+			});
+			return {};
+		});
+		rrSolrScope.delete('/v1/rankers/cd02b5x110-rr-5074')
+		.reply(200, function(uri, requestBody){
+			rankerList2.rankers = rankerList2.rankers.filter(function(item){
+				return item.ranker_id !== 'cd02b5x110-rr-5074';
+			});
+			return {};
+		});
 	}
 };

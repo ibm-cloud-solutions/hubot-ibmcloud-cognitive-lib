@@ -16,7 +16,6 @@ const rrDb = new DBManager({localDbName: 'rr', remoteDbName: env.cloudantDb});
 const logger = require('./logger');
 const fs = require('fs');
 const qs = require('qs');
-const request = require('request');
 const rrConfig = require('./rrconfig');
 
 /**
@@ -67,8 +66,10 @@ RRManager.prototype.setupCluster = function(){
 * Deletes the current cluster and all rankers
 */
 RRManager.prototype.deleteCluster = function(){
+	let maxRankers = this.opts.maxRankers;
 	return new Promise((resolve, reject) => {
 		this._getCluster(true).then((result) => {
+			this.opts.maxRankers = 0; // this will delete all rankers when deleting a cluster
 			return this._deleteOldRankers();
 		}).then((result) => {
 			let params = {
@@ -76,8 +77,10 @@ RRManager.prototype.deleteCluster = function(){
 			};
 			return this._deleteCluster(params);
 		}).then((result) => {
+			this.opts.maxRankers = maxRankers;
 			resolve(result);
 		}).catch((err) => {
+			this.opts.maxRankers = maxRankers;
 			reject(err);
 		});
 	});
@@ -370,25 +373,25 @@ RRManager.prototype._startTraining = function(){
 			rrConfig.getRRClasses().then((csvInput) => {
 				let csv_text = 'question_id,f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,r1,r2,s,ground_truth\n';
 				let fcselect_calls = [];
+				if (!this.solrClient){
+					let params = {
+						cluster_id: this.cluster_cache.solr_cluster_id,
+						collection_name: this.opts.collectionName
+					};
+					this.solrClient = this.rr.createSolrClient(params);
+				}
 				for (let i = 0; i < csvInput.length; i++){
 					let row = csvInput[i];
 					fcselect_calls.push(new Promise((resolve, reject) => {
-						let query = this.opts.url + '/v1/solr_clusters/' + this.cluster_cache.solr_cluster_id + '/solr/' + this.opts.collectionName + '/fcselect';
-						let params = {
-							auth: {
-								pass: this.opts.password,
-								user: this.opts.username
-							},
-							qs: {
+						let query = qs.stringify(
+							{
 								q: row[0],
 								gt: row[1],
 								returnRSInput: 'true',
 								rows: 10,
-								wt: 'json',
 								fl: 'id'
-							}
-						};
-						request.get(query, params, (err, response, body) => {
+							});
+						this.solrClient.get('fcselect', query, (err, response) => {
 							if (err) {
 								reject(err);
 							}
@@ -397,8 +400,8 @@ RRManager.prototype._startTraining = function(){
 									reject(response.statusMessage);
 								}
 								else {
-									csv_text += JSON.parse(body).RSInput;
-									resolve(JSON.parse(body).RSInput);
+									csv_text += response.RSInput;
+									resolve(response.RSInput);
 								}
 							}
 						});
