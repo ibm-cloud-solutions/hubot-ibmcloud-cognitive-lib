@@ -28,7 +28,8 @@ const settings = {
 	test: process.env.HUBOT_DB_TEST || false,
 	version: 'v1',
 	suppressErrors: process.env.SUPPRESS_ERRORS || false,
-	logLevel: process.env.COGNITIVE_LOG_LEVEL || 'error'
+	logLevel: process.env.COGNITIVE_LOG_LEVEL || 'error',
+	dbName: process.env.HUBOT_DB_NAME || 'nlc'
 };
 
 
