@@ -8,21 +8,7 @@
 const env = require('./env');
 const DBManager = require('./dbManager');
 const classesView = 'classes/byClass';
-const rrDb = new DBManager({localDbName: 'rr', remoteDbName: env.cloudantDb});
-
-const RRCONFIG_KEY = Symbol.for('hubot-ibmcloud-cognitive-lib-rrconfig');
-
-let globalSymbols = Object.getOwnPropertySymbols(global);
-if (globalSymbols.indexOf(RRCONFIG_KEY) < 0) {
-	global[RRCONFIG_KEY] = {};
-}
-
-let singleton = {};
-Object.defineProperty(singleton, 'instance', {
-	get: function(){
-		return global[RRCONFIG_KEY];
-	}
-});
+const rrDb = new DBManager({localDbName: 'rr', remoteDbName: env.db_rr_remote});
 
 exports.getRRClasses = function(){
 	// assumption that the database can be held in memory

@@ -13,7 +13,7 @@ const RRManager = require('../index').rrManager;
 const mockRR = require('./rrManager.mock');
 const env = require('../src/lib/env.js');
 const dbSetup = require('./setupTestDb');
-let db;
+let rrDb;
 let docs = path.resolve(__dirname, 'resources', 'mock.documents.json');
 
 describe('Test the RRManager library', function(){
@@ -24,8 +24,8 @@ describe('Test the RRManager library', function(){
 	const unavailableRanker = 'test-ranker4';
 
 	before(function(done){
-		dbSetup.setup().then((database) => {
-			db = database;
+		dbSetup.setup().then((databases) => {
+			rrDb = databases.rrDb;
 			done();
 		});
 	});
@@ -100,7 +100,11 @@ describe('Test the RRManager library', function(){
 				expect(result2).to.not.exist();
 			}, (error) => {
 				expect(error).to.be.eql('No clusters found under [test-cluster]');
-				done();
+				rrDb.get('cd02b5x110-rr-0000').catch((err) => {
+					expect(err.name).to.be.eql('not_found');
+					expect(err.reason).to.be.eql('deleted');
+					done();
+				});
 			});
 		});
 	});
@@ -135,14 +139,10 @@ describe('Test the RRManager library', function(){
 			});
 		});
 
-		it('Should monitor a ranker while it is being trained and delete old rankers when training completes', function(done){
+		it('Should monitor a ranker while it is being trained and return when available', function(done){
 			watson_rr.monitorTraining('cd02b5x110-rr-5110').then(function(result){
 				expect(result.status).to.be.equal('Available');
-				db.get('cd02b5x110-rr-0000').catch((err) => {
-					expect(err.name).to.be.eql('not_found');
-					expect(err.reason).to.be.eql('deleted');
-					done();
-				});
+				done();
 			});
 		});
 

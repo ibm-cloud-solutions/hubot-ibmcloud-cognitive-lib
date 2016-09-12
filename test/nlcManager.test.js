@@ -13,7 +13,8 @@ const NLCManager = require('../index').nlcManager;
 const mockNLP = require('./nlcManager.mock');
 const env = require('../src/lib/env.js');
 const dbSetup = require('./setupTestDb');
-let db;
+let nlc_db;
+let rr_db;
 
 describe('Test the NLCManager library', function(){
 	let watson_nlc;
@@ -23,8 +24,8 @@ describe('Test the NLCManager library', function(){
 	let unavailableClassifier = 'test-classifier4';
 
 	before(function(done){
-		dbSetup.setup().then((database) => {
-			db = database;
+		dbSetup.setup().then((databases) => {
+			nlc_db = databases.nlcDb;
 			done();
 		});
 	});
@@ -55,7 +56,7 @@ describe('Test the NLCManager library', function(){
 		watson_nlc.monitorTraining('cd02b5x110-nlc-5110').then(function(result){
 			expect(result.status).to.be.equal('Available');
 
-			db.get('cd02b5x110-nlc-0000').catch((err) => {
+			nlc_db.get('cd02b5x110-nlc-0000').catch((err) => {
 				expect(err.name).to.be.eql('not_found');
 				expect(err.reason).to.be.eql('deleted');
 				done();
