@@ -13,7 +13,7 @@ const fs = require('fs');
 process.env.SUPPRESS_ERRORS = true;
 
 const DBManager = require('./dbManager');
-const db = new DBManager('nlc');
+const db = new DBManager({localDbName: 'nlc'});
 const env = require('./env');
 
 const PARAMETER_VALUES = 'parameter.values';
