@@ -14,7 +14,6 @@ const mockNLP = require('./nlcManager.mock');
 const env = require('../src/lib/env.js');
 const dbSetup = require('./setupTestDb');
 let nlc_db;
-let rr_db;
 
 describe('Test the NLCManager library', function(){
 	let watson_nlc;
