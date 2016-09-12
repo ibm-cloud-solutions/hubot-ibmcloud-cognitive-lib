@@ -66,21 +66,15 @@ RRManager.prototype.setupCluster = function(){
 * Deletes the current cluster and all rankers
 */
 RRManager.prototype.deleteCluster = function(){
-	let maxRankers = this.opts.maxRankers;
 	return new Promise((resolve, reject) => {
 		this._getCluster(true).then((result) => {
-			this.opts.maxRankers = 0; // this will delete all rankers when deleting a cluster
-			return this._deleteOldRankers();
-		}).then((result) => {
 			let params = {
-				cluster_id: this.cluster_cache.solr_cluster_id
+				cluster_id: result.solr_cluster_id
 			};
 			return this._deleteCluster(params);
 		}).then((result) => {
-			this.opts.maxRankers = maxRankers;
 			resolve(result);
 		}).catch((err) => {
-			this.opts.maxRankers = maxRankers;
 			reject(err);
 		});
 	});
@@ -768,7 +762,7 @@ RRManager.prototype._getCluster = function(doNotCreate){
 										resolve(clusterStatus[i]);
 										return;
 									}
-									else if (clusterStatus[i].status === 'NOT_AVAILABLE' && !this.clusterInitializing){
+									else if (clusterStatus[i].solr_cluster_status === 'NOT_AVAILABLE' && !this.clusterInitializing){
 										this.clusterInitializing = clusterStatus[i];
 									}
 								}

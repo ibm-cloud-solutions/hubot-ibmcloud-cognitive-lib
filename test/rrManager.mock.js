@@ -16,8 +16,8 @@ const mockRankerStatusAvailableResults = require(path.resolve(__dirname, 'resour
 const mockClusterStatusReadyResults = require(path.resolve(__dirname, 'resources', 'mock.clusterStatusReady.json'));
 const mockRankerStatusTrainingResults = require(path.resolve(__dirname, 'resources', 'mock.rankerStatusTraining.json'));
 const mockRankerStatusUnavailableResults = require(path.resolve(__dirname, 'resources', 'mock.rankerStatusUnavailable.json'));
+const mockClusterStatusUnavailableResults = require(path.resolve(__dirname, 'resources', 'mock.clusterStatusUnavailable.json'));
 const mockRSInputs = require(path.resolve(__dirname, 'resources', 'mock.RSInputs.json'));
-
 const rankerList = require(path.resolve(__dirname, 'resources', 'mock.rankerList.json'));
 const rankerList2 = { rankers: [] };
 rankerList2.rankers = Array.from(rankerList.rankers);
@@ -49,7 +49,7 @@ module.exports = {
 		rrScope.get('/v1/solr_clusters')
 		.reply(200, clusterList);
 
-		// Mock route for cluster status.
+		// Mock route for cluster status ready.
 		rrScope.get('/v1/solr_clusters/sc8675309-s117')
 		.reply(200, mockClusterStatusReadyResults);
 
@@ -127,7 +127,13 @@ module.exports = {
 		nock.cleanAll();
 		nock.disableNetConnect();
 		let rrSolrScope = nock(rrEndpoint).persist();
-		let clusterList2 = { clusters: [] };
+		let trainingCluster = {
+			solr_cluster_id: 'sc8675309-s117-notready',
+			cluster_name: 'test-cluster',
+			cluster_size: '',
+			solr_cluster_status: 'NOT_AVAILABLE'
+		};
+		let clusterList2 = { clusters: [trainingCluster]};
 		let newCluster = {
 			solr_cluster_id: 'sc117-13225-sjd27',
 			cluster_name: 'test-cluster',
@@ -158,11 +164,16 @@ module.exports = {
 			return newCluster;
 		});
 
+
+		// Mock route for cluster status unavailable.
+		rrSolrScope.get('/v1/solr_clusters/sc8675309-s117-notready')
+		.reply(200, mockClusterStatusUnavailableResults);
+
 		// Mock route for getting solr cluster info
 		rrSolrScope.get('/v1/solr_clusters/sc117-13225-sjd27')
 		.reply(200, function(){
-			clusterList2.clusters[0].solr_cluster_status = 'READY';
-			return clusterList2.clusters[0];
+			clusterList2.clusters[1].solr_cluster_status = 'READY';
+			return clusterList2.clusters[1];
 		});
 
 		// Mock route for uploading config
@@ -182,6 +193,15 @@ module.exports = {
 		.reply(200, function(uri, requestBody) {
 			clusterList2.clusters = clusterList2.clusters.filter(function(item){
 				return item.solr_cluster_id !== 'sc117-13225-sjd27';
+			});
+			return {};
+		});
+
+		// Mock route for deleting a cluster, deletes it from our mock list of clusters.
+		rrSolrScope.delete('/v1/solr_clusters/sc8675309-s117-notready')
+		.reply(200, function(uri, requestBody) {
+			clusterList2.clusters = clusterList2.clusters.filter(function(item){
+				return item.solr_cluster_id !== 'sc8675309-s117-notready';
 			});
 			return {};
 		});

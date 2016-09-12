@@ -47,13 +47,22 @@ describe('Test the RRManager library', function(){
 		watson_rr = new RRManager(watson_rr_options);
 	});
 
-	describe('Test the solr cluster initialization methods', function(){
+	describe('Test the solr cluster methods', function(){
 		before(function() {
 			return mockRR.setupSolrMockery();
 		});
 
+		it('should return a training cluster if none found ready', function(done){
+			watson_rr._getCluster().then((result) => {
+				expect(result.solr_cluster_id).to.be.equal('sc8675309-s117-notready');
+				expect(result.cluster_name).to.be.equal(watson_rr.opts.clusterName);
+				expect(result.solr_cluster_status).to.be.equal('NOT_AVAILABLE');
+				done();
+			});
+		});
+
 		it('should create a solr cluster', function(done){
-			watson_rr._createCluster().then(function(result){
+			watson_rr._createCluster().then((result) => {
 				expect(result.solr_cluster_id).to.be.equal('sc117-13225-sjd27');
 				expect(result.cluster_name).to.be.equal(watson_rr.opts.clusterName);
 				expect(result.solr_cluster_status).to.be.equal('NOT_AVAILABLE');
@@ -65,7 +74,7 @@ describe('Test the RRManager library', function(){
 			let params = {cluster_id: 'sc117-13225-sjd27',
 			config_name: 'test-config',
 			config_zip_path: 'test/resources/test-config.zip'};
-			watson_rr._uploadConfig(params).then(function(result){
+			watson_rr._uploadConfig(params).then((result) => {
 				expect(result).to.exist;
 				expect(result).to.be.an('object');
 				expect(result).to.be.empty;
@@ -77,7 +86,7 @@ describe('Test the RRManager library', function(){
 			let params = {cluster_id: 'sc117-13225-sjd27',
 			config_name: 'test-config',
 			collection_name: 'test-collection'};
-			watson_rr._createCollection(params).then(function(result){
+			watson_rr._createCollection(params).then((result) => {
 				expect(result.responseHeader.status).to.be.equal(0);
 				expect(result.responseHeader.QTime).to.be.equal(1627);
 				expect(result.core).to.be.equal('test_collection_shard1_replica1');
@@ -85,21 +94,88 @@ describe('Test the RRManager library', function(){
 			});
 		});
 
+		it('should upload documents', function(done){
+			watson_rr.setupIfNeeded().then((result) => {
+				return watson_rr._uploadDocuments(require(docs));
+			}).then((result) => {
+				expect(result).to.exist;
+				done();
+			});
+		});
+
 		it('should setup from start to finish', function(done){
-			watson_rr.setupCluster().then(function(result){
+			watson_rr.setupCluster().then((result) => {
 				expect(result.solr_cluster_id).to.be.equal('sc117-13225-sjd27');
 				done();
 			});
 		});
 
-		it('should delete a cluster and all rankers', function(done){
+		it('should find cached solr cluster', function(done){
+			watson_rr.setupIfNeeded().then((result) => {
+				return watson_rr._getCluster();
+			}).then((result) => {
+				expect(result.solr_cluster_id).to.be.equal('sc117-13225-sjd27');
+				expect(result.cluster_name).to.be.equal(watson_rr.opts.clusterName);
+				expect(result.solr_cluster_status).to.be.equal('READY');
+				done();
+			});
+		});
+
+		it('should get cluster status without specifying a cluster id', function(done){
+			watson_rr._getClusterStatus().then((result) => {
+				expect(result.solr_cluster_id).to.be.equal('sc117-13225-sjd27');
+				expect(result.cluster_name).to.be.equal(watson_rr.opts.clusterName);
+				expect(result.solr_cluster_status).to.be.equal('READY');
+				done();
+			});
+		});
+
+		it('should delete clusters', function(done){
 			watson_rr.deleteCluster().then((result) => {
 				expect(result).to.exist;
+				expect(result).to.be.empty;
+				return watson_rr.deleteCluster();
+			}).then((result) => {
+				expect(result).to.exist;
+				expect(result).to.be.empty;
 				return watson_rr._getCluster(true);
-			}).then((result2) => {
-				expect(result2).to.not.exist();
+			}).then((result) => {
+				expect(result).to.not.exist();
 			}, (error) => {
 				expect(error).to.be.eql('No clusters found under [test-cluster]');
+				done();
+			});
+		});
+
+		it('should return error if no clusters found and doNotCreate true', function(done){
+			watson_rr._getCluster(true).then((result) => {
+				expect(result).to.not.exist;
+			},
+			(error) => {
+				expect(error).to.be.equal('No clusters found under [test-cluster]');
+				done();
+			});
+		});
+	});
+
+	describe('Test the ranker methods', function(){
+
+		before(function() {
+			return mockRR.setupMockery();
+		});
+
+		it('should return cf cli doc as top result', function(done){
+			watson_rr.setupIfNeeded().then((result) => {
+				return watson_rr.rank('using the cf command line');
+			}).then((result) => {
+				expect(result.docs[0].title).to.be.equal('cli/reference/cfcommands/index.html');
+				done();
+			});
+		});
+
+		it('Should monitor a ranker and delete old rankers', function(done){
+			watson_rr.monitorTraining('cd02b5x110-rr-5110').then((result) => {
+				expect(result.status).to.be.equal('Available');
 				rrDb.get('cd02b5x110-rr-0000').catch((err) => {
 					expect(err.name).to.be.eql('not_found');
 					expect(err.reason).to.be.eql('deleted');
@@ -107,47 +183,9 @@ describe('Test the RRManager library', function(){
 				});
 			});
 		});
-	});
-
-	describe('Test the cluster/ranker methods', function(){
-
-		before(function() {
-			return mockRR.setupMockery();
-		});
-
-		it('should find and return existing solr cluster', function(done){
-			watson_rr.setupIfNeeded().then(function(result){
-				expect(result.solr_cluster_id).to.be.equal('sc8675309-s117');
-				done();
-			});
-		});
-		it('should upload documents', function(done){
-			watson_rr.setupIfNeeded().then(function(result){
-				return watson_rr._uploadDocuments(require(docs));
-			}).then(function(result){
-				expect(result).to.exist;
-				done();
-			});
-		});
-
-		it('should return cf cli doc as top result', function(done){
-			watson_rr.setupIfNeeded().then(function(result){
-				return watson_rr.rank('using the cf command line');
-			}).then(function(result){
-				expect(result.docs[0].title).to.be.equal('cli/reference/cfcommands/index.html');
-				done();
-			});
-		});
-
-		it('Should monitor a ranker while it is being trained and return when available', function(done){
-			watson_rr.monitorTraining('cd02b5x110-rr-5110').then(function(result){
-				expect(result.status).to.be.equal('Available');
-				done();
-			});
-		});
 
 		it('should successfully get the status of most recent available ranker', function(done){
-			watson_rr.rankerStatus().then(function(result){
+			watson_rr.rankerStatus().then((result) => {
 				expect(result.status).to.be.equal('Available');
 				done();
 			});
@@ -156,14 +194,14 @@ describe('Test the RRManager library', function(){
 		it('should successfully get status of most recent training ranker', function(done){
 			watson_rr.opts.rankerName = trainingRanker;
 			watson_rr.rr._options.rankerName = trainingRanker;
-			watson_rr.rankerStatus().then(function(result){
+			watson_rr.rankerStatus().then((result) => {
 				expect(result.status).to.be.equal('Training');
 				done();
 			});
 		});
 
 		it('should successfully list filtered rankers in correct order', function(done){
-			watson_rr.rankerList().then(function(result){
+			watson_rr.rankerList().then((result) => {
 				expect(result.length).to.be.equal(3);
 				expect(result[0].name).to.be.equal('test-ranker');
 				expect(result[1].name).to.be.equal('test-ranker');
@@ -173,7 +211,7 @@ describe('Test the RRManager library', function(){
 		});
 
 		it('should successfully get the current ranker', function(done){
-			watson_rr.currentRanker().then(function(result){
+			watson_rr.currentRanker().then((result) => {
 				expect(result.name).to.be.eql('test-ranker');
 				expect(result.ranker_id).to.be.eql('cd02b5x110-rr-5110');
 				done();
@@ -182,7 +220,7 @@ describe('Test the RRManager library', function(){
 
 		it('Should not train existing ranker', function(done){
 			// this test is using default env.rr_ranker who's mocked list most recent status is Available.
-			watson_rr.trainIfNeeded().then(function(result){
+			watson_rr.trainIfNeeded().then((result) => {
 				expect(result.status).to.be.equal('Available');
 				done();
 			});
@@ -191,7 +229,7 @@ describe('Test the RRManager library', function(){
 		it('Should start training ranker with provided training_data', function(done){
 			watson_rr_options.rankerName = 'non-exist-ranker';
 			watson_rr_options.training_data = fs.createReadStream(path.resolve(__dirname, 'resources', 'training.data.csv'));
-			watson_rr.trainIfNeeded().then(function(result){
+			watson_rr.trainIfNeeded().then((result) => {
 				expect(result.status).to.be.equal('Training');
 				done();
 			});
@@ -258,7 +296,7 @@ describe('Test the RRManager library', function(){
 		});
 
 		it('should fail to train a ranker', function(done){
-			watson_rr.setupIfNeeded().then(function(result){
+			watson_rr.setupIfNeeded().then((result) => {
 				return watson_rr.train();
 			}).then(() => {
 				done(Error('Test should have failed training a new ranker'));
