@@ -19,7 +19,6 @@ const settings = {
 	cloudantEndpoint: process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_HOST ? 'https://' + process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_HOST : process.env.HUBOT_CLOUDANT_ENDPOINT,
 	cloudantKey: process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_USERNAME || process.env.HUBOT_CLOUDANT_KEY,
 	cloudantPassword: process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_PASSWORD || process.env.HUBOT_CLOUDANT_PASSWORD,
-	cloudantDb: process.env.HUBOT_CLOUDANT_DB || 'nlc',
 	dbPath: process.env.HUBOT_DB_PATH || './',
 	dbDirectory: process.env.HUBOT_DB_DIRECTORY || 'databases',
 	syncInterval: process.env.SYNC_INTERVAL || '1800000', // default 30 minutes
@@ -29,7 +28,8 @@ const settings = {
 	version: 'v1',
 	suppressErrors: process.env.SUPPRESS_ERRORS || false,
 	logLevel: process.env.COGNITIVE_LOG_LEVEL || 'error',
-	dbName: process.env.HUBOT_DB_NAME || 'nlc'
+	db_nlc_remote: process.env.HUBOT_CLOUDANT_NLC_DB || 'nlc',
+	db_rr_remote: process.env.HUBOT_CLOUDANT_RR_DB || 'rr'
 };
 
 

@@ -6,10 +6,10 @@
  */
 'use strict';
 const DBManager = require('./src/lib/dbManager');
-const env = require('./src/lib/env');
 
 module.exports.nlcconfig = require('./src/lib/nlcconfig');
 module.exports.nlcManager = require('./src/lib/nlcManager');
 module.exports.hubotPouch = require('./src/lib/PouchDB');
-module.exports.nlcDb = new DBManager({localDbName: env.db_nlc_local});
+module.exports.nlcDb = new DBManager({localDbName: 'nlc'});
+module.exports.rrDb = new DBManager({localDbName: 'rr'});
 module.exports.rrManager = require('./src/lib/rrManager');
