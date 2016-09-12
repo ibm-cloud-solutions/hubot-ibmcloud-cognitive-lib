@@ -28,6 +28,13 @@ const settings = {
 	logLevel: process.env.COGNITIVE_LOG_LEVEL || 'error'
 };
 
+// cloudantNoSQLDB service bound to application, overrides any other settings.
+if (process.env.VCAP_SERVICES && JSON.parse(process.env.VCAP_SERVICES).cloudantNoSQLDB) {
+	let credentials = JSON.parse(process.env.VCAP_SERVICES).cloudantNoSQLDB[0].credentials;
+	settings.cloudantEndpoint = credentials.host;
+	settings.cloudantKey = credentials.username;
+	settings.cloudantPassword = credentials.password;
+}
 
 // gracefully output message and exit if any required config is undefined
 if (settings.cloudantEndpoint) {
