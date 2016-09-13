@@ -49,6 +49,7 @@ function RRManager(options) {
 	this.rr = watson.retrieve_and_rank(this.opts);
 }
 
+/* ---------- Cluster-specific methods ---------- */
 
 /**
  * Sets up a new solr cluster. The new cluster can't be used until its status becomes 'AVAILABLE'.
@@ -59,54 +60,6 @@ function RRManager(options) {
  */
 RRManager.prototype.setupCluster = function(){
 	return this._setupCluster();
-};
-
-
-/**
-* Deletes the current cluster and all rankers
-*/
-RRManager.prototype.deleteCluster = function(){
-	return new Promise((resolve, reject) => {
-		this._getCluster(true).then((result) => {
-			let params = {
-				cluster_id: result.solr_cluster_id
-			};
-			return this._deleteCluster(params);
-		}).then((result) => {
-			resolve(result);
-		}).catch((err) => {
-			reject(err);
-		});
-	});
-};
-
-
-/**
- * Creates a new ranker and starts training it. The new ranker can't be used until training completes.
- * TIP:
- * 	 It is useful to monitor training progress using `monitorTraining(ranker_id)`.
- *
- * @return Promise	When resolved it returns a JSON object with the new ranker information.
- */
-RRManager.prototype.train = function(){
-	return this._startTraining();
-};
-
-/**
- * Find the most recent ranker that either available or training.  If no such ranker, then start training.
- * TIP:
- * 	 It is useful to monitor training progress using `monitorTraining(ranker_id)`.
- *
- * @return Promise Resolved with existing ranker or new ranker information if training is needed.
- */
-RRManager.prototype.trainIfNeeded = function(){
-	return new Promise((resolve, reject) => {
-		this._getRanker().then((ranker) => {
-			resolve(ranker);
-		}).catch((err) => {
-			reject(err);
-		});
-	});
 };
 
 
@@ -129,144 +82,19 @@ RRManager.prototype.setupIfNeeded = function(){
 
 
 /**
- * Asynchronously monitors a ranker that is being trained. It resolves when training
- * completes and the ranker status is 'Available'. It polls for ranker status every
- * 60 seconds. Training a ranker takes at least 10 minutes.
- *
- * @param  String 	ranker_id 	The id of the ranker.
- * @return Promise               	Resolved when training completes. Returns the ranker settings/status. Errors if training fails.
- */
-RRManager.prototype.monitorTraining = function(ranker_id){
-	return this._monitor(ranker_id);
-};
-
-
-/**
- * Gets the current status for the ranker with ranker_id
- *
- * @param  String 	ranker_id 	The id of the ranker.
- * @return Promise       			When resolved returns the ranker data. It errors if a ranker isn't found.
- */
-RRManager.prototype.rankerStatus = function(ranker_id){
-	return this._getRankerStatus(ranker_id);
-};
-
-/**
- * Gets list of rankers
- *
- * @return Promise       			When resolved returns a list of rankers.
- */
-RRManager.prototype.rankerList = function(){
-	return this._getRankerList();
-};
-
-
-/**
- * Get information about the curent ranker
- *
- * @return Promise
- */
-RRManager.prototype.currentRanker = function(){
-	return this._getRanker(true);
-};
-
-/**
- * Returns documents that match a query using the latest ranker available.
- *
- * @param  String	text	Question to be matched with ranked documents.
- * @return JSON      		Ranking data from Watson Retrieve and Rank ranker.
- */
-RRManager.prototype.rank = function(text){
+* Deletes the current cluster and all rankers
+*/
+RRManager.prototype.deleteCluster = function(){
 	return new Promise((resolve, reject) => {
-		this._getRanker().then((ranker) => {
-			logger.info(`Using ranker ${ranker.ranker_id}`);
-			if (ranker.status === 'Training'){
-				resolve(ranker);
-			}
-			else {
-				if (!this.solrClient){
-					let params = {
-						cluster_id: this.cluster_cache.solr_cluster_id,
-						collection_name: this.opts.collectionName
-					};
-					this.solrClient = this.rr.createSolrClient(params);
-				}
-				this.solrClient.get('fcselect', qs.stringify({
-					q: text,
-					ranker_id: ranker.ranker_id,
-					fl: 'id,title'}),
-					(err, response) => {
-						if (err) {
-							this.ranker_cache = undefined;
-							reject(err);
-						}
-						else {
-							resolve(response);
-						}
-					});
-			}
+		this._getCluster(true).then((result) => {
+			let params = {
+				cluster_id: result.solr_cluster_id
+			};
+			return this._deleteCluster(params);
+		}).then((result) => {
+			resolve(result);
 		}).catch((err) => {
-			this.ranker_cache = undefined;
 			reject(err);
-		});
-	});
-};
-
-
-/**
- * Gets data used to train the ranker with rankerId.
- *
- * @param  String	rankerId
- * @return Promise  JSON			Sample result:	{"className": ["Text 1.", "Text 2"]}
- */
-RRManager.prototype.getRankerData = function(rankerId){
-	logger.debug(`${TAG} Requested data used to train RR with rankerId=${rankerId}`);
-	return new Promise((resolve, reject) => {
-		rrDb.get(rankerId).then((doc) => {
-			csvParse(doc.trainedData, function(err, jsonData){
-				if (err){
-					logger.error(`${TAG}: Error parsing CSV data used to train RR with rankerId=${rankerId}`, err);
-					reject(err);
-				}
-				else {
-					// Sort data by className for better display.
-					let result = {};
-					jsonData.forEach((trainingRecord) => {
-						for (let i = 1; i < trainingRecord.length; i++){
-							let texts = result[trainingRecord[i]] || [];
-							texts.push(trainingRecord[0]);
-							result[trainingRecord[i]] = texts;
-						}
-					});
-					logger.debug(`${TAG}: Data used to train RR with rankerId=${rankerId}`, result);
-					resolve(result);
-				}
-			});
-		}).catch((err) => {
-			logger.error(`Error retrieving data used to train ranker ${rankerId}`, err);
-			reject(`Error retrieving data used to train ranker ${rankerId}`, err);
-		});
-	});
-};
-
-
-/**
- * Internal method to delete a cluster.
- *
- * @return Promise
- */
-RRManager.prototype._deleteCluster = function(params){
-	return new Promise((resolve, reject) => {
-		this.rr.deleteCluster(params, (err, response) => {
-			if (err) {
-				logger.error(`${TAG}: Error deleting solr cluster.`, err);
-				logger.error(`${TAG} Options and data sent to delete cluster.`, params);
-				reject('Error deleting solr cluster');
-			}
-			else {
-				this.cluster_cache = undefined;
-				resolve(response);
-			}
 		});
 	});
 };
@@ -330,91 +158,6 @@ RRManager.prototype._setupCluster = function(){
 				resolve(this.cluster_cache);
 			}).catch((err) => {
 				reject(err);
-			});
-		}
-	});
-};
-
-
-/**
- * Internal method to start training a ranker.
- *
- * @return Promise
- */
-RRManager.prototype._startTraining = function(){
-
-	logger.info('Starting training a ranker');
-	return new Promise((resolve, reject) => {
-		if (this.rankerTraining) {
-			logger.info(`Ranker already in training: ${this.rankerTraining}`);
-			resolve(this.rankerTraining);
-		}
-		// Training with data initialized in opts.
-		else if (this.opts.training_data) {
-			let params = {
-				training_data: this.opts.training_data,
-				training_metadata: JSON.stringify({name: this.opts.rankerName})
-			};
-			this._createRanker(params).then((result) => {
-				resolve(result);
-			}).catch((err) => {
-				reject(err);
-			});
-		}
-
-		// Training data from PouchDB.
-		else {
-			rrConfig.getRRClasses().then((csvInput) => {
-				let csv_text = 'question_id,f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,r1,r2,s,ground_truth\n';
-				let fcselect_calls = [];
-				if (!this.solrClient){
-					let params = {
-						cluster_id: this.cluster_cache.solr_cluster_id,
-						collection_name: this.opts.collectionName
-					};
-					this.solrClient = this.rr.createSolrClient(params);
-				}
-				for (let i = 0; i < csvInput.length; i++){
-					let row = csvInput[i];
-					fcselect_calls.push(new Promise((resolve, reject) => {
-						let query = qs.stringify(
-							{
-								q: row[0],
-								gt: row[1],
-								returnRSInput: 'true',
-								rows: 10,
-								fl: 'id'
-							});
-						this.solrClient.get('fcselect', query, (err, response) => {
-							if (err) {
-								reject(err);
-							}
-							else {
-								if (response.statusCode >= 300){
-									reject(response.statusMessage);
-								}
-								else {
-									csv_text += response.RSInput;
-									resolve(response.RSInput);
-								}
-							}
-						});
-					}));
-				}
-				Promise.all(fcselect_calls).then((result) => {
-					this.opts.training_data = csv_text;
-					let params = {
-						training_data: this.opts.training_data,
-						training_metadata: JSON.stringify({name: this.opts.rankerName})
-					};
-					this._createRanker(params).then((result) => {
-						resolve(result);
-					}).catch((error) => {
-						reject(error);
-					});
-				});
-			}).catch((error) => {
-				reject(error);
 			});
 		}
 	});
@@ -530,40 +273,21 @@ RRManager.prototype._uploadDocuments = function(documents){
 
 
 /**
- * Helper method that creates an RR instance and saves the data used for training for future reference.
+ * Internal method to delete a cluster.
  *
- * @param  Object 	params 	Parameters for the Watson RR service.
- * @return Object        	Result from Watson RR service.
+ * @return Promise
  */
-RRManager.prototype._createRanker = function(params){
-	logger.info('Creating new ranker...');
+RRManager.prototype._deleteCluster = function(params){
 	return new Promise((resolve, reject) => {
-		this.rr.createRanker(params, (err, response) => {
+		this.rr.deleteCluster(params, (err, response) => {
 			if (err) {
-				logger.error(`${TAG}: Error creating ranker.`, err);
-				logger.error(`${TAG} Options and data sent to train RR service.`, params);
-				reject('Error creating ranker');
+				logger.error(`${TAG}: Error deleting solr cluster.`, err);
+				logger.error(`${TAG} Options and data sent to delete cluster.`, params);
+				reject('Error deleting solr cluster');
 			}
 			else {
-				this.rankerTraining = response;
-				if (this.opts.saveTrainingData) {
-					logger.debug(`${TAG}: Saving RR trained data for ${response.ranker_id}`);
-					let doc = {
-						_id: response.ranker_id,
-						type: 'ranker_data',
-						trainedData: params.training_data
-					};
-					rrDb.createOrUpdate(doc).then(() => {
-						logger.debug(`${TAG}: Saved RR trained data for ${response.ranker_id}`);
-						resolve(response);
-					}).catch((error) => {
-						logger.error(`${TAG}: Error saving RR trained data for ${response.ranker_id}`, error);
-						resolve(response); // Resolve promise; don't fail because of DB errors.
-					});
-				}
-				else {
-					resolve(response);
-				}
+				this.cluster_cache = undefined;
+				resolve(response);
 			}
 		});
 	});
@@ -603,6 +327,413 @@ RRManager.prototype._monitorCluster = function(cluster_id){
 			});
 		};
 		checkAvailable(resolve, reject);
+	});
+};
+
+
+/**
+ * Helper method to finds a cluster which is ready
+ * and with the most recent creation date.  If none are 'READY' then find
+ * the most recent cluster that is 'NOT_AVAILABLE'.  If none exist at all,
+ * start setting up a new one.
+ *
+ * @return Promise When resolved it returns a JSON object with the cluster information.
+ */
+RRManager.prototype._getCluster = function(doNotCreate){
+	return new Promise((resolve, reject) => {
+		if (this.cluster_cache){
+			logger.debug(`Using cached RR cluster ${this.cluster_cache.cluster_id}`);
+			resolve(this.cluster_cache);
+		}
+		else {
+			this.rr.listClusters({}, (err, response) => {
+				if (err) {
+					reject('Error getting available clusters.' + JSON.stringify(err, null, 2));
+				}
+				else {
+					let filteredClusters = response.clusters.filter((cluster) => {
+						return cluster.cluster_name === this.opts.clusterName;
+					});
+
+					if (filteredClusters.length < 1){
+						if (doNotCreate) {
+							reject(`No clusters found under [${this.opts.clusterName}]`);
+						}
+						else {
+							// no clusters found by this name, so create one and start training.
+							logger.info(`No clusters found with name ${this.opts.clusterName}. Creating a new one.`);
+							this._setupCluster().then((result) => {
+								resolve(result);
+							}).catch((err) => {
+								reject(err);
+							});
+						}
+					}
+					else {
+						// try to find the most recent available.  or most recent that started training.
+						let sortedClusters = filteredClusters.sort((a, b) => {
+							return new Date(b.created) - new Date(a.created);
+						});
+
+						let checkStatus = [];
+						sortedClusters.map((cluster) => {
+							checkStatus.push(this._getClusterStatus(cluster.solr_cluster_id));
+						});
+
+						Promise.all(checkStatus).then((clusterStatus) => {
+
+							this.clusterInitializing = undefined;
+							for (let i = 0; i < sortedClusters.length; i++){
+								if (sortedClusters[i].cluster_name === this.opts.clusterName){
+									if (clusterStatus[i].solr_cluster_status === 'READY'){
+										this.cluster_cache = clusterStatus[i];
+										resolve(clusterStatus[i]);
+										return;
+									}
+									else if (clusterStatus[i].solr_cluster_status === 'NOT_AVAILABLE' && !this.clusterInitializing){
+										this.clusterInitializing = clusterStatus[i];
+									}
+								}
+							}
+
+							if (this.clusterInitializing){
+								resolve(this.clusterInitializing);
+							}
+							else {
+								if (doNotCreate) {
+									reject(`No clusters available under [${this.opts.clusterName}]`);
+								}
+								else {
+									// none are available or training, start training one.
+									logger.info(`No clusters with name ${this.opts.clusterName} are avilable or initializing. Creating a new one.`);
+									this._setupCluster().then((result) => {
+										resolve(result);
+									}).catch((err) => {
+										reject(err);
+									});
+								}
+							}
+						}).catch((error) => {
+							reject('Error getting a cluster.' + JSON.stringify(error));
+						});
+					}
+				}
+			});
+		}
+	});
+};
+
+
+/**
+ * Helper method to retrieve the status of a cluster.
+ *
+ * @param  String 	cluster_id 	The id of the cluster.
+ * @return Promise       			When resolved returns the cluster data.
+ */
+RRManager.prototype._getClusterStatus = function(cluster_id){
+	return new Promise((resolve, reject) => {
+		if (cluster_id) {
+			this.rr.pollCluster({cluster_id: cluster_id}, (err, status) => {
+				if (err){
+					reject('Error while checking status of cluster ' + cluster_id + JSON.stringify(err, null, 2));
+				}
+				else {
+					// If cluster is unavailable, record it's training duration
+					if (status.status === 'NOT_AVAILABLE') {
+						let duration = Math.floor((Date.now() - new Date(status.created)) / 60000);
+						status.duration = duration > 0 ? duration : 0;
+					}
+					resolve(status);
+				}
+			});
+		}
+		else {
+			this._getCluster(true).then(function(status) {
+				resolve(status);
+			}).catch(function(err) {
+				reject(err);
+			});
+		}
+	});
+};
+
+
+/* ---------- Ranker-specific methods ---------- */
+
+
+/**
+ * Creates a new ranker and starts training it. The new ranker can't be used until training completes.
+ * TIP:
+ * 	 It is useful to monitor training progress using `monitorTraining(ranker_id)`.
+ *
+ * @return Promise	When resolved it returns a JSON object with the new ranker information.
+ */
+RRManager.prototype.train = function(){
+	return this._startTraining();
+};
+
+
+/**
+ * Find the most recent ranker that either available or training.  If no such ranker, then start training.
+ * TIP:
+ * 	 It is useful to monitor training progress using `monitorTraining(ranker_id)`.
+ *
+ * @return Promise Resolved with existing ranker or new ranker information if training is needed.
+ */
+RRManager.prototype.trainIfNeeded = function(){
+	return new Promise((resolve, reject) => {
+		this._getRanker().then((ranker) => {
+			resolve(ranker);
+		}).catch((err) => {
+			reject(err);
+		});
+	});
+};
+
+
+/**
+ * Asynchronously monitors a ranker that is being trained. It resolves when training
+ * completes and the ranker status is 'Available'. It polls for ranker status every
+ * 60 seconds. Training a ranker takes at least 10 minutes.
+ *
+ * @param  String 	ranker_id 	The id of the ranker.
+ * @return Promise               	Resolved when training completes. Returns the ranker settings/status. Errors if training fails.
+ */
+RRManager.prototype.monitorTraining = function(ranker_id){
+	return this._monitor(ranker_id);
+};
+
+
+/**
+ * Gets the current status for the ranker with ranker_id
+ *
+ * @param  String 	ranker_id 	The id of the ranker.
+ * @return Promise       			When resolved returns the ranker data. It errors if a ranker isn't found.
+ */
+RRManager.prototype.rankerStatus = function(ranker_id){
+	return this._getRankerStatus(ranker_id);
+};
+
+
+/**
+ * Gets list of rankers
+ *
+ * @return Promise       			When resolved returns a list of rankers.
+ */
+RRManager.prototype.rankerList = function(){
+	return this._getRankerList();
+};
+
+
+/**
+ * Get information about the curent ranker
+ *
+ * @return Promise
+ */
+RRManager.prototype.currentRanker = function(){
+	return this._getRanker(true);
+};
+
+
+/**
+ * Returns documents that match a query using the latest ranker available.
+ *
+ * @param  String	text	Question to be matched with ranked documents.
+ * @return JSON      		Ranking data from Watson Retrieve and Rank ranker.
+ */
+RRManager.prototype.rank = function(text){
+	return new Promise((resolve, reject) => {
+		this._getRanker().then((ranker) => {
+			logger.info(`Using ranker ${ranker.ranker_id}`);
+			if (ranker.status === 'Training'){
+				resolve(ranker);
+			}
+			else {
+				if (!this.solrClient){
+					let params = {
+						cluster_id: this.cluster_cache.solr_cluster_id,
+						collection_name: this.opts.collectionName
+					};
+					this.solrClient = this.rr.createSolrClient(params);
+				}
+				this.solrClient.get('fcselect', qs.stringify({
+					q: text,
+					ranker_id: ranker.ranker_id,
+					fl: 'id,title'}),
+					(err, response) => {
+						if (err) {
+							this.ranker_cache = undefined;
+							reject(err);
+						}
+						else {
+							resolve(response);
+						}
+					});
+			}
+		}).catch((err) => {
+			this.ranker_cache = undefined;
+			reject(err);
+		});
+	});
+};
+
+
+/**
+ * Gets data used to train the ranker with rankerId.
+ *
+ * @param  String	rankerId
+ * @return Promise  JSON			Sample result:	{"className": ["Text 1.", "Text 2"]}
+ */
+RRManager.prototype.getRankerData = function(rankerId){
+	logger.debug(`${TAG} Requested data used to train RR with rankerId=${rankerId}`);
+	return new Promise((resolve, reject) => {
+		rrDb.get(rankerId).then((doc) => {
+			csvParse(doc.trainedData, function(err, jsonData){
+				if (err){
+					logger.error(`${TAG}: Error parsing CSV data used to train RR with rankerId=${rankerId}`, err);
+					reject(err);
+				}
+				else {
+					// Sort data by className for better display.
+					let result = {};
+					jsonData.forEach((trainingRecord) => {
+						for (let i = 1; i < trainingRecord.length; i++){
+							let texts = result[trainingRecord[i]] || [];
+							texts.push(trainingRecord[0]);
+							result[trainingRecord[i]] = texts;
+						}
+					});
+					logger.debug(`${TAG}: Data used to train RR with rankerId=${rankerId}`, result);
+					resolve(result);
+				}
+			});
+		}).catch((err) => {
+			logger.error(`Error retrieving data used to train ranker ${rankerId}`, err);
+			reject(`Error retrieving data used to train ranker ${rankerId}`, err);
+		});
+	});
+};
+
+
+/**
+ * Internal method to start training a ranker.
+ *
+ * @return Promise
+ */
+RRManager.prototype._startTraining = function(){
+	return new Promise((resolve, reject) => {
+		if (this.rankerTraining) {
+			resolve(this.rankerTraining);
+		}
+		// Training with data initialized in opts.
+		else if (this.opts.training_data) {
+			let params = {
+				training_data: this.opts.training_data,
+				training_metadata: JSON.stringify({name: this.opts.rankerName})
+			};
+			this._createRanker(params).then((result) => {
+				resolve(result);
+			}).catch((err) => {
+				reject(err);
+			});
+		}
+
+		// Training data from PouchDB.
+		else {
+			rrConfig.getRRClasses().then((csvInput) => {
+				let csv_text = 'question_id,f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,r1,r2,s,ground_truth\n';
+				let fcselect_calls = [];
+				if (!this.solrClient){
+					let params = {
+						cluster_id: this.cluster_cache.solr_cluster_id,
+						collection_name: this.opts.collectionName
+					};
+					this.solrClient = this.rr.createSolrClient(params);
+				}
+				for (let i = 0; i < csvInput.length; i++){
+					let row = csvInput[i];
+					fcselect_calls.push(new Promise((resolve, reject) => {
+						let query = qs.stringify(
+							{
+								q: row[0],
+								gt: row[1],
+								returnRSInput: 'true',
+								rows: 10,
+								fl: 'id'
+							});
+						this.solrClient.get('fcselect', query, (err, response) => {
+							if (err) {
+								reject(err);
+							}
+							else {
+								if (response.statusCode >= 300){
+									reject(response.statusMessage);
+								}
+								else {
+									csv_text += response.RSInput;
+									resolve(response.RSInput);
+								}
+							}
+						});
+					}));
+				}
+				Promise.all(fcselect_calls).then((result) => {
+					this.opts.training_data = csv_text;
+					let params = {
+						training_data: this.opts.training_data,
+						training_metadata: JSON.stringify({name: this.opts.rankerName})
+					};
+					this._createRanker(params).then((result) => {
+						resolve(result);
+					}).catch((error) => {
+						reject(error);
+					});
+				});
+			}).catch((error) => {
+				reject(error);
+			});
+		}
+	});
+};
+
+
+/**
+ * Helper method that creates an RR instance and saves the data used for training for future reference.
+ *
+ * @param  Object 	params 	Parameters for the Watson RR service.
+ * @return Object        	Result from Watson RR service.
+ */
+RRManager.prototype._createRanker = function(params){
+	logger.info('Creating new ranker...');
+	return new Promise((resolve, reject) => {
+		this.rr.createRanker(params, (err, response) => {
+			if (err) {
+				logger.error(`${TAG}: Error creating ranker.`, err);
+				logger.error(`${TAG} Options and data sent to train RR service.`, params);
+				reject('Error creating ranker');
+			}
+			else {
+				this.rankerTraining = response;
+				if (this.opts.saveTrainingData) {
+					logger.debug(`${TAG}: Saving RR trained data for ${response.ranker_id}`);
+					let doc = {
+						_id: response.ranker_id,
+						type: 'ranker_data',
+						trainedData: params.training_data
+					};
+					rrDb.createOrUpdate(doc).then(() => {
+						logger.debug(`${TAG}: Saved RR trained data for ${response.ranker_id}`);
+						resolve(response);
+					}).catch((error) => {
+						logger.error(`${TAG}: Error saving RR trained data for ${response.ranker_id}`, error);
+						resolve(response); // Resolve promise; don't fail because of DB errors.
+					});
+				}
+				else {
+					resolve(response);
+				}
+			}
+		});
 	});
 };
 
@@ -704,99 +835,6 @@ RRManager.prototype._deleteOldRankers = function(){
 
 
 /**
- * Helper method to finds a cluster which is ready
- * and with the most recent creation date.  If none are 'READY' then find
- * the most recent cluster that is 'NOT_AVAILABLE'.  If none exist at all,
- * start setting up a new one.
- *
- * @return Promise When resolved it returns a JSON object with the cluster information.
- */
-RRManager.prototype._getCluster = function(doNotCreate){
-	return new Promise((resolve, reject) => {
-		if (this.cluster_cache){
-			logger.debug(`Using cached RR cluster ${this.cluster_cache.cluster_id}`);
-			resolve(this.cluster_cache);
-		}
-		else {
-			this.rr.listClusters({}, (err, response) => {
-				if (err) {
-					reject('Error getting available clusters.' + JSON.stringify(err, null, 2));
-				}
-				else {
-					let filteredClusters = response.clusters.filter((cluster) => {
-						return cluster.cluster_name === this.opts.clusterName;
-					});
-
-					if (filteredClusters.length < 1){
-						if (doNotCreate) {
-							reject(`No clusters found under [${this.opts.clusterName}]`);
-						}
-						else {
-							// no clusters found by this name, so create one and start training.
-							logger.info(`No clusters found with name ${this.opts.clusterName}. Creating a new one.`);
-							this._setupCluster().then((result) => {
-								resolve(result);
-							}).catch((err) => {
-								reject(err);
-							});
-						}
-					}
-					else {
-						// try to find the most recent available.  or most recent that started training.
-						let sortedClusters = filteredClusters.sort((a, b) => {
-							return new Date(b.created) - new Date(a.created);
-						});
-
-						let checkStatus = [];
-						sortedClusters.map((cluster) => {
-							checkStatus.push(this._getClusterStatus(cluster.solr_cluster_id));
-						});
-
-						Promise.all(checkStatus).then((clusterStatus) => {
-
-							this.clusterInitializing = undefined;
-							for (let i = 0; i < sortedClusters.length; i++){
-								if (sortedClusters[i].cluster_name === this.opts.clusterName){
-									if (clusterStatus[i].solr_cluster_status === 'READY'){
-										this.cluster_cache = clusterStatus[i];
-										resolve(clusterStatus[i]);
-										return;
-									}
-									else if (clusterStatus[i].solr_cluster_status === 'NOT_AVAILABLE' && !this.clusterInitializing){
-										this.clusterInitializing = clusterStatus[i];
-									}
-								}
-							}
-
-							if (this.clusterInitializing){
-								resolve(this.clusterInitializing);
-							}
-							else {
-								if (doNotCreate) {
-									reject(`No clusters available under [${this.opts.clusterName}]`);
-								}
-								else {
-									// none are available or training, start training one.
-									logger.info(`No clusters with name ${this.opts.clusterName} are avilable or initializing. Creating a new one.`);
-									this._setupCluster().then((result) => {
-										resolve(result);
-									}).catch((err) => {
-										reject(err);
-									});
-								}
-							}
-						}).catch((error) => {
-							reject('Error getting a cluster.' + JSON.stringify(error));
-						});
-					}
-				}
-			});
-		}
-	});
-};
-
-
-/**
  * Helper method to finds a ranker which is available (training completed)
  * and with the most recent creation date.  If none are 'Available' then find
  * the most recent ranker that started training.  If none are training,
@@ -884,40 +922,6 @@ RRManager.prototype._getRanker = function(doNotTrain){
 						});
 					}
 				}
-			});
-		}
-	});
-};
-
-
-/**
- * Helper method to retrieve the status of a cluster.
- *
- * @param  String 	cluster_id 	The id of the cluster.
- * @return Promise       			When resolved returns the cluster data.
- */
-RRManager.prototype._getClusterStatus = function(cluster_id){
-	return new Promise((resolve, reject) => {
-		if (cluster_id) {
-			this.rr.pollCluster({cluster_id: cluster_id}, (err, status) => {
-				if (err){
-					reject('Error while checking status of cluster ' + cluster_id + JSON.stringify(err, null, 2));
-				}
-				else {
-					// If cluster is unavailable, record it's training duration
-					if (status.status === 'NOT_AVAILABLE') {
-						let duration = Math.floor((Date.now() - new Date(status.created)) / 60000);
-						status.duration = duration > 0 ? duration : 0;
-					}
-					resolve(status);
-				}
-			});
-		}
-		else {
-			this._getCluster(true).then(function(status) {
-				resolve(status);
-			}).catch(function(err) {
-				reject(err);
 			});
 		}
 	});
