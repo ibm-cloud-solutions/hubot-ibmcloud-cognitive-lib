@@ -44,12 +44,13 @@ if (process.env.VCAP_SERVICES) {
 	}
 }
 
-// gracefully output message and exit if any required config is undefined
-if (settings.cloudantEndpoint) {
+// strip 'https://' from cloudantEndpoint, if exists.
+if (settings.cloudantEndpoint && settings.cloudantEndpoint.includes('/')) {
 	let tmp = settings.cloudantEndpoint;
 	settings.cloudantEndpoint = tmp.substring(tmp.indexOf('/') + 2);
 }
 
+// gracefully output message and exit if any required config is undefined
 if (!settings.nlc_url) {
 	logger.error('HUBOT_WATSON_NLC_URL not set');
 }
