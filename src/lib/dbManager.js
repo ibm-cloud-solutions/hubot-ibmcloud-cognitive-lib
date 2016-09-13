@@ -81,7 +81,7 @@ function initializeDB(db){
 
 function syncFn(db, localDbName, remoteDbName){
 	if (!env.test && env.cloudantEndpoint && env.cloudantPassword) {
-		logger.info(`${TAG}: Starting sync of database ${localDbName} with remote Cloudant db ${remoteDbName}.`);
+		logger.info(`${TAG}: Starting sync of database ${localDbName} with remote Cloudant db ${remoteDbName} @ ${env.cloudantEndpoint}.`);
 
 		db.sync(`https://${env.cloudantKey}:${env.cloudantPassword}@${env.cloudantEndpoint}/${remoteDbName}`,
 			{
