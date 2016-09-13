@@ -1,6 +1,6 @@
 {
   "name": "hubot-ibmcloud-cognitive-lib",
-  "version": "0.0.50",
+  "version": "0.0.51",
   "description": "Provides cognitive libraries to assist Hubot developers to interpret natural language.",
   "main": "index.js",
   "repository": {
