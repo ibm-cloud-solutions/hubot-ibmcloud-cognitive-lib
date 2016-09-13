@@ -111,7 +111,7 @@ if (!env.test){
 	if (args.length > 0){
 		let fname = args[0];
 		this.init(fname).then(() => {
-			console.log('Database initialization complete');
+			console.log(`Database initialization complete.  Database location: ${env.dbPath}`);
 			process.exit(0);
 		}).catch((err) => {
 			if (err.status === 409){
