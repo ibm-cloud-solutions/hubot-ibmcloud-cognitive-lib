@@ -24,7 +24,10 @@
     "ibm cloud",
     "hubot",
     "hubot utilities",
-    "hubot scripts"
+    "hubot scripts",
+    "hubot-scripts",
+    "ibm",
+    "cloud"
   ],
   "author": "ibm-cloud-solutions",
   "license": "Apache-2.0",
