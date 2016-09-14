@@ -18,6 +18,7 @@ let settings = {
 	cloudantPassword: process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_PASSWORD || process.env.HUBOT_CLOUDANT_PASSWORD,
 	cloudantDb: process.env.HUBOT_CLOUDANT_DB || 'nlc',
 	dbPath: process.env.HUBOT_DB_PATH || './',
+	initDbPath: process.env.HUBOT_INIT_DB_PATH || process.env.HUBOT_DB_PATH || './',
 	dbDirectory: process.env.HUBOT_DB_DIRECTORY || 'databases',
 	syncInterval: process.env.SYNC_INTERVAL || '1800000', // default 30 minutes
 	highThreshold: process.env.CONFIDENCE_THRESHOLD_HIGH || '0.8',
