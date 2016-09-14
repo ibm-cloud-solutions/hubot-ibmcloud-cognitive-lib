@@ -7,7 +7,7 @@
 'use strict';
 const logger = require('./logger');
 
-const settings = {
+let settings = {
 	nlc_url: process.env.VCAP_SERVICES_NATURAL_LANGUAGE_CLASSIFIER_0_CREDENTIALS_URL || process.env.HUBOT_WATSON_NLC_URL,
 	nlc_username: process.env.VCAP_SERVICES_NATURAL_LANGUAGE_CLASSIFIER_0_CREDENTIALS_USERNAME || process.env.HUBOT_WATSON_NLC_USERNAME,
 	nlc_password: process.env.VCAP_SERVICES_NATURAL_LANGUAGE_CLASSIFIER_0_CREDENTIALS_PASSWORD || process.env.HUBOT_WATSON_NLC_PASSWORD,
@@ -20,6 +20,7 @@ const settings = {
 	cloudantKey: process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_USERNAME || process.env.HUBOT_CLOUDANT_KEY,
 	cloudantPassword: process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_PASSWORD || process.env.HUBOT_CLOUDANT_PASSWORD,
 	dbPath: process.env.HUBOT_DB_PATH || './',
+	initDbPath: process.env.HUBOT_INIT_DB_PATH || process.env.HUBOT_DB_PATH || './',
 	dbDirectory: process.env.HUBOT_DB_DIRECTORY || 'databases',
 	syncInterval: process.env.SYNC_INTERVAL || '1800000', // default 30 minutes
 	highThreshold: process.env.CONFIDENCE_THRESHOLD_HIGH || '0.8',
@@ -32,13 +33,28 @@ const settings = {
 	db_rr_remote: process.env.HUBOT_CLOUDANT_RR_DB || 'rr'
 };
 
-
-// gracefully output message and exit if any required config is undefined
-if (settings.cloudantEndpoint) {
-	let tmp = settings.cloudantEndpoint;
-	settings.cloudantEndpoint = tmp.substring(tmp.indexOf('/') + 2);
+// cloudantNoSQLDB service bound to application, overrides any other settings.
+if (process.env.VCAP_SERVICES) {
+	if (JSON.parse(process.env.VCAP_SERVICES).cloudantNoSQLDB) {
+		let credentials = JSON.parse(process.env.VCAP_SERVICES).cloudantNoSQLDB[0].credentials;
+		settings.cloudantEndpoint = credentials.host;
+		settings.cloudantKey = credentials.username;
+		settings.cloudantPassword = credentials.password;
+	}
+	if (JSON.parse(process.env.VCAP_SERVICES).natural_language_classifier) {
+		let credentials = JSON.parse(process.env.VCAP_SERVICES).natural_language_classifier[0].credentials;
+		settings.nlc_url = credentials.url;
+		settings.nlc_username = credentials.username;
+		settings.nlc_password = credentials.password;
+	}
 }
 
+// trim protocol from cloudantEndpoint
+if (settings.cloudantEndpoint) {
+	settings.cloudantEndpoint = settings.cloudantEndpoint.replace('http://', '').replace('https://', '');
+}
+
+// gracefully output message and exit if any required config is undefined
 if (!settings.nlc_url) {
 	logger.error('HUBOT_WATSON_NLC_URL not set');
 }

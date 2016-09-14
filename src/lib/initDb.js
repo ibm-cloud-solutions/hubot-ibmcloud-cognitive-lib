@@ -12,9 +12,10 @@ const fs = require('fs');
 
 process.env.SUPPRESS_ERRORS = true;
 
-const DBManager = require('./dbManager');
+
 const env = require('./env');
-let db = new DBManager({localDbName: 'nlc'});
+const DBManager = require('./dbManager');
+const db = new DBManager({localDbName: 'nlc', localDbPath: env.initDbPath});
 
 const PARAMETER_VALUES = 'parameter.values';
 
@@ -117,7 +118,7 @@ if (!env.test){
 				return this.init(fname2);
 			}
 		}).then(() => {
-			console.log('Database initialization complete');
+			console.log(`Database initialization complete.  Database location: ${env.dbPath}`);
 			process.exit(0);
 		}).catch((err) => {
 			if (err.status === 409){
