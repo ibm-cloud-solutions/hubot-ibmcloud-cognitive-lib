@@ -192,8 +192,7 @@ describe('Test the RRManager library', function(){
 		});
 
 		it('should successfully get status of most recent training ranker', function(done){
-			watson_rr.opts.rankerName = trainingRanker;
-			watson_rr.rr._options.rankerName = trainingRanker;
+			watson_rr.serviceManager.instanceName = trainingRanker;
 			watson_rr.rankerStatus().then((result) => {
 				expect(result.status).to.be.equal('Training');
 				done();
@@ -226,8 +225,18 @@ describe('Test the RRManager library', function(){
 			});
 		});
 
+		it('Should start training ranker with training_data from db', function(done){
+			watson_rr.serviceManager.instanceName = 'non-exist-ranker';
+			watson_rr.setupIfNeeded().then((result) => {
+				return watson_rr.trainIfNeeded();
+			}).then((result) => {
+				expect(result.status).to.be.equal('Training');
+				done();
+			});
+		});
+
 		it('Should start training ranker with provided training_data', function(done){
-			watson_rr_options.rankerName = 'non-exist-ranker';
+			watson_rr.serviceManager.instanceName = 'non-exist-ranker';
 			watson_rr_options.training_data = fs.createReadStream(path.resolve(__dirname, 'resources', 'training.data.csv'));
 			watson_rr.trainIfNeeded().then((result) => {
 				expect(result.status).to.be.equal('Training');
@@ -255,8 +264,7 @@ describe('Test the RRManager library', function(){
 		});
 
 		it('should fail to get status of ranker', function(done){
-			watson_rr.opts.rankerName = nonExistentRanker;
-			watson_rr.rr._options.rankerName = nonExistentRanker;
+			watson_rr.serviceManager.instanceName = nonExistentRanker;
 			watson_rr.rankerStatus().catch(function(error){
 				expect(error).to.be.equal(`No rankers found under [${nonExistentRanker}]`);
 				done();
@@ -264,8 +272,7 @@ describe('Test the RRManager library', function(){
 		});
 
 		it('should fail to get an available/training ranker', function(done){
-			watson_rr.opts.rankerName = unavailableRanker;
-			watson_rr.rr._options.rankerName = unavailableRanker;
+			watson_rr.serviceManager.instanceName = unavailableRanker;
 			watson_rr.rankerStatus().catch(function(error){
 				expect(error).to.be.equal(`No rankers available under [${unavailableRanker}]`);
 				done();

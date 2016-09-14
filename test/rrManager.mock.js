@@ -67,6 +67,14 @@ module.exports = {
 		rrScope.get('/v1/rankers/cd02b5x110-rr-8888')
 		.reply(200, mockRankerStatusUnavailableResults);
 
+		// Mock routes to get training data for ranker training
+		rrScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=mySelection&gt=undefined%2Cundefined&returnRSInput=true&rows=10&fl=id&wt=json')
+		.reply(200, mockRSInputs);
+		rrScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=approved&gt=should%20see%20this&returnRSInput=true&rows=10&fl=id&wt=json')
+		.reply(200, mockRSInputs);
+		rrScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=test.class&gt=test%20data&returnRSInput=true&rows=10&fl=id&wt=json')
+		.reply(200, mockRSInputs);
+
 		// Mock route for ranker error status.
 		rrScope.get('/v1/rankers/ranker-id-0000')
 		.reply(400, 'Mock: Ranker doesn\'t exist');
