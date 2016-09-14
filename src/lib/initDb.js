@@ -14,7 +14,7 @@ process.env.SUPPRESS_ERRORS = true;
 
 const env = require('./env');
 const DBManager = require('./dbManager');
-const db = new DBManager({localDbName:'nlc', localDbPath: env.initDbPath});
+const db = new DBManager({localDbName: 'nlc', localDbPath: env.initDbPath});
 
 const PARAMETER_VALUES = 'parameter.values';
 
