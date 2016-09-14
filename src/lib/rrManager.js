@@ -12,7 +12,7 @@ const watson = require('watson-developer-cloud');
 const ServiceManager = require('./serviceManager');
 const logger = require('./logger');
 const fs = require('fs');
-const rrConfig = require('./rrconfig');
+// const rrConfig = require('./rrconfig');
 
 /**
  * @param options Object with the following configuration.
