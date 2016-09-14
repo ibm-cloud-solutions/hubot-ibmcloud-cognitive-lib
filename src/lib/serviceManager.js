@@ -15,8 +15,8 @@ const csvParse = require('csv-parse');
 const logger = require('./logger');
 const qs = require('qs');
 const stringify = require('csv-stringify');
-const rrConfig = require('./rrConfig');
-const nlcConfig = require('./nlcConfig');
+const rrConfig = require('./rrconfig');
+const nlcConfig = require('./nlcconfig');
 
 /**
 * @param {options} Object with the following configuration.
