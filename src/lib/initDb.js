@@ -12,9 +12,9 @@ const fs = require('fs');
 
 process.env.SUPPRESS_ERRORS = true;
 
-const DBManager = require('./dbManager');
-const db = new DBManager('nlc');
 const env = require('./env');
+const DBManager = require('./dbManager');
+const db = new DBManager({localDbName: 'nlc', localDbPath: env.initDbPath});
 
 const PARAMETER_VALUES = 'parameter.values';
 
