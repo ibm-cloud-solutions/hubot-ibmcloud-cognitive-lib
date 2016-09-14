@@ -150,7 +150,7 @@ serviceManager.prototype.process = function(text, cluster_cache){
 	}
 	return new Promise((resolve, reject) => {
 		this._getServiceInstance().then((instance) => {
-			logger.info('Using %s %s', this.opts.serviceType, JSON.stringify(instance));
+			logger.info('Using %s %s', this.opts.serviceType, instance.ranker_id || instance.classifier_id);
 			if (instance.status === 'Training'){
 				resolve(instance);
 			}
@@ -529,7 +529,6 @@ serviceManager.prototype._processRequest = function(text, instance){
  * @return Promise	       	Resolves with result from Watson NLC/RR service.
  */
 serviceManager.prototype._createInstance = function(params){
-	logger.info(`Creating new ${this.opts.serviceType}...`);
 	return new Promise((resolve, reject) => {
 		if (this.rr){
 			return this.rr.createRanker(params, (err, response) => {

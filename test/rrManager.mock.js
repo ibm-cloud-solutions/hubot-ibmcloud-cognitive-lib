@@ -148,7 +148,7 @@ module.exports = {
 			cluster_size: '',
 			solr_cluster_status: 'NOT_AVAILABLE'
 		};
-		let config_res = {
+		let collection_res = {
 			responseHeader: {status: 0, QTime: 1627},
 			core: 'test_collection_shard1_replica1'
 		};
@@ -190,7 +190,7 @@ module.exports = {
 
 		// Mock route for creating collection
 		rrSolrScope.post('/v1/solr_clusters/sc117-13225-sjd27/solr/admin/collections?collection.configName=test-config&name=test-collection&wt=json&action=CREATE')
-		.reply(200, config_res);
+		.reply(200, collection_res);
 
 		// Mock route for posting documents
 		rrSolrScope.post('/v1/solr_clusters/sc117-13225-sjd27/solr/test-collection/update/json?&wt=json')

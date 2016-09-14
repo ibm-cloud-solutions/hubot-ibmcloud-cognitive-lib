@@ -100,12 +100,8 @@ RRManager.prototype.deleteCluster = function(){
  * @return Promise
  */
 RRManager.prototype._setupCluster = function(){
-
-	logger.info('Creating new solr cluster...');
 	return new Promise((resolve, reject) => {
 		if (this.clusterInitializing) {
-
-			logger.info('a solr cluster already exists');
 			resolve(this.clusterInitializing);
 		}
 
@@ -177,7 +173,6 @@ RRManager.prototype._createCluster = function(params){
 			}
 			else {
 				this.clusterInitializing = response;
-				logger.info('Created cluster: ', this.clusterInitializing);
 				resolve(response);
 			}
 		});
@@ -191,7 +186,6 @@ RRManager.prototype._createCluster = function(params){
  * @return Object        	Result from Watson RR service.
  */
 RRManager.prototype._uploadConfig = function(params){
-	logger.info('Uploading config for cluster');
 	return new Promise((resolve, reject) => {
 		this.rr.uploadConfig(params, (err, response) => {
 			if (err) {
@@ -213,7 +207,6 @@ RRManager.prototype._uploadConfig = function(params){
  * @return Object        	Result from Watson RR service.
  */
 RRManager.prototype._createCollection = function(params){
-	logger.info('Creating collection for cluster: ', params);
 	return new Promise((resolve, reject) => {
 		this.rr.createCollection(params, (err, response) => {
 			if (err) {
@@ -235,7 +228,6 @@ RRManager.prototype._createCollection = function(params){
  * @return Object        	Result from Watson RR service.
  */
 RRManager.prototype._uploadDocuments = function(documents){
-	logger.info('Uploading documents for cluster...');
 	return new Promise((resolve, reject) => {
 		if (!this.solrClient){
 			let params = {
