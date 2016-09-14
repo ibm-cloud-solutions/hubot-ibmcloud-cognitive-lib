@@ -142,11 +142,13 @@ RRManager.prototype._setupCluster = function(){
 					});
 				}
 				else {
-					rrConfig.getDocuments().then((jsonInput) => {
-						return this._uploadDocuments(jsonInput);
-					}).catch((error) => {
-						reject(error);
-					});
+					reject('failed to upload training documents: no documents found.');
+					// TODO: Implement way to train with documents stored in db by crawler?
+					// rrConfig.getDocuments().then((jsonInput) => {
+					// 	return this._uploadDocuments(jsonInput);
+					// }).catch((error) => {
+					// 	reject(error);
+					// });
 				}
 			}).then((result) => {
 				resolve(this.cluster_cache);
