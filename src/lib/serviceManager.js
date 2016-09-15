@@ -490,7 +490,7 @@ serviceManager.prototype._processRequest = function(text, instance){
 			let query = qs.stringify({
 				q: text,
 				ranker_id: instance.ranker_id,
-				fl: 'id,title'
+				fl: 'id,title,url'
 			});
 			this.solrClient.get('fcselect', query, (err, response) => {
 				if (err) {
