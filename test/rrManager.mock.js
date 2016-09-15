@@ -89,7 +89,7 @@ module.exports = {
 		});
 
 		// Mock route to get ranking data.
-		rrScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=using%20the%20cf%20command%20line&ranker_id=cd02b5x110-rr-5110&fl=id%2Ctitle&wt=json')
+		rrScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=using%20the%20cf%20command%20line&ranker_id=cd02b5x110-rr-5110&fl=id%2Ctitle%2Curl&wt=json')
 		.reply(200, mockRankResults);
 
 		// Mock route to create a new ranker.
