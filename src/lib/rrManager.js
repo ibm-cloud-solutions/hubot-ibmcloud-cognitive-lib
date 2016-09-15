@@ -323,7 +323,7 @@ RRManager.prototype._monitorCluster = function(cluster_id){
 RRManager.prototype._getCluster = function(doNotCreate){
 	return new Promise((resolve, reject) => {
 		if (this.cluster_cache){
-			logger.debug(`Using cached RR cluster ${this.cluster_cache.cluster_id}`);
+			logger.debug(`Using cached RR cluster ${this.cluster_cache.solr_cluster_id}`);
 			resolve(this.cluster_cache);
 		}
 		else {
