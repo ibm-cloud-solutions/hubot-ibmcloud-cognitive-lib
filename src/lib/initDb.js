@@ -118,7 +118,7 @@ if (!env.test){
 				return this.init(fname2);
 			}
 		}).then(() => {
-			console.log(`Database initialization complete.  Database location: ${env.dbPath}`);
+			console.log(`Database initialization complete.  Database location: ${env.initDbPath}`);
 			process.exit(0);
 		}).catch((err) => {
 			if (err.status === 409){
