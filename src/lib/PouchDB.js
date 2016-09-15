@@ -9,6 +9,8 @@
 const env = require('./env');
 const fs = require('fs');
 const path = require('path');
+const TAG = path.basename(__filename);
+const logger = require('./logger');
 
 const open = function(dbName, dbPath) {
 	const dbDir = path.join(dbPath || env.dbPath, env.dbDirectory);
