@@ -12,9 +12,10 @@ const fs = require('fs');
 
 process.env.SUPPRESS_ERRORS = true;
 
+
 const env = require('./env');
 const DBManager = require('./dbManager');
-const db = new DBManager({localDbName: 'nlc', localDbPath: env.initDbPath});
+let db = new DBManager({localDbName: 'nlc', localDbPath: env.initDbPath});
 
 const PARAMETER_VALUES = 'parameter.values';
 
@@ -111,11 +112,17 @@ if (!env.test){
 	if (args.length > 0){
 		let fname = args[0];
 		this.init(fname).then(() => {
+			if (args.length > 1){
+				let fname2 = args[1];
+				db = new DBManager({localDbName: 'rr'});
+				return this.init(fname2);
+			}
+		}).then(() => {
 			console.log(`Database initialization complete.  Database location: ${env.initDbPath}`);
 			process.exit(0);
 		}).catch((err) => {
 			if (err.status === 409){
-				console.warn('nlc database already exists! Delete it and run initDb again to update.');
+				console.warn('nlc and/or rr database already exists! Delete them and run initDb again to update.');
 				process.exit(0);
 			}
 			else {

@@ -1,0 +1,6 @@
+{
+  "solr_cluster_id": "sc8675309-s117-notready",
+  "cluster_name": "test-cluster",
+  "cluster_size": "1",
+  "solr_cluster_status": "NOT_AVAILABLE"
+}

@@ -6,7 +6,8 @@
  */
 'use strict';
 const DBManager = require('../src/lib/dbManager');
-const db = new DBManager({localDbName: 'nlc', remoteDbName: 'nlc'});
+const nlc_db = new DBManager({localDbName: 'nlc', remoteDbName: 'nlc'});
+const rr_db = new DBManager({localDbName: 'rr', remoteDbName: 'rr'});
 
 const learned = require('./resources/training.local.learned.json');
 const unclassified = require('./resources/training.local.unclassified.json');
@@ -15,7 +16,7 @@ const emittarget = 'test.class.js';
 const descriptionText = 'Sample description text';
 
 const open = new Promise((resolve, reject) => {
-	return db.put({
+	return nlc_db.put({
 		_id: clz,
 		emittarget: emittarget,
 		description: descriptionText,
@@ -40,7 +41,7 @@ const open = new Promise((resolve, reject) => {
 		],
 		storageType: 'private'
 	}).then(() => {
-		return db.put({
+		return nlc_db.put({
 			_id: 'test.global.parameters',
 			values: [
 				'cpu',
@@ -51,38 +52,38 @@ const open = new Promise((resolve, reject) => {
 			]
 		});
 	}).then(() => {
-		return db.put({
+		return nlc_db.put({
 			_id: 'sample_classification',
 			class: clz,
 			text: 'test data',
 			storageType: 'private'
 		});
 	}).then(() => {
-		return db.put({
+		return nlc_db.put({
 			_id: 'cd02b5x110-nlc-0000',
 			type: 'classifier_data',
 			trainedData: 'This classifier should be deleted.'
 		});
 	}).then(() => {
-		return db.put({
+		return nlc_db.put({
 			_id: 'classifier-data-123',
 			type: 'classifier_data',
 			trainedData: 'Sample classification text,classification\nSample classification text 2,classification\nSample classification text 3,classification3'
 		});
 	}).then(() => {
-		return db.put(learned);
+		return nlc_db.put(learned);
 	}).then(() => {
-		return db.put(unclassified);
+		return nlc_db.put(unclassified);
 	}).then(() => {
 		// not approved
-		return db.put({
+		return nlc_db.put({
 			_id: 'not.approved',
 			selectedClass: 'notApproved',
 			text: 'should not see this'
 		});
 	}).then(() => {
 		// approved
-		return db.put({
+		return nlc_db.put({
 			_id: 'approved',
 			selectedClass: 'approved',
 			approved: true,
@@ -91,7 +92,19 @@ const open = new Promise((resolve, reject) => {
 			text: 'should see this'
 		});
 	}).then(() => {
-		resolve(db);
+		return rr_db.put({
+			_id: 'cd02b5x110-rr-0000',
+			type: 'ranker_data',
+			trainedData: 'This ranker should be deleted.'
+		});
+	}).then(() => {
+		return rr_db.put({
+			_id: 'ranker-data-123',
+			type: 'ranker_data',
+			trainedData: 'Sample ranking text,ranking\nSample ranking text 2,ranking\nSample ranking text 3,ranking3'
+		});
+	}).then(() => {
+		resolve({nlcDb: nlc_db, rrDb: rr_db});
 	}).catch((err) => {
 		reject(err);
 	});
