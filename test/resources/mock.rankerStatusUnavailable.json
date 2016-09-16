@@ -1,0 +1,8 @@
+{
+  "ranker_id": "cd02b5x110-rr-8888",
+  "name": "test-ranker4",
+  "created": "2016-06-29T19:09:59.000Z",
+  "url": "https://gateway-s.watsonplatform.net/retrieve-and-rank/api/v1/rankers/cd02b5x110-rr-8888",
+  "status": "Unavailable",
+  "status_description": "The ranker instance is unavailable."
+}

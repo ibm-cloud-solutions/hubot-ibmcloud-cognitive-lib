@@ -8,7 +8,7 @@
 
 const expect = require('chai').expect;
 const assert = require('chai').assert;
-const testDb = require('./setupTestDb');
+const testDbs = require('./setupTestDb');
 
 const learnedId = 'learned';
 
@@ -18,20 +18,20 @@ describe('Testing of database.', function() {
 
 	before(function(){
 		// load up local database
-		return testDb.setup().then((db) => {
-			this.db = db;
+		return testDbs.setup().then((dbs) => {
+			this.nlcDb = dbs.nlcDb;
 		});
 	});
 
 	context('Test database info', function() {
 
 		it('should respond with database info', function() {
-			assert(this.db, 'db should be initialized');
-			return this.db.info().then((info) => {
+			assert(this.nlcDb, 'db should be initialized');
+			return this.nlcDb.info().then((info) => {
 				// should be at least 5 documents in the database
 				// the seed db test increases the number of documents
 				expect(info.doc_count).to.be.above(4);
-				return this.db.info({
+				return this.nlcDb.info({
 					allDocs: true,
 					include_docs: true
 				}).then((allDocs) => {
@@ -45,12 +45,12 @@ describe('Testing of database.', function() {
 	context('Test adding to an existing document in the database', function() {
 
 		it('should update the existing document in the database with a `dummy` field', function() {
-			assert(this.db, 'db should be initialized');
+			assert(this.nlcDb, 'db should be initialized');
 			let rev;
-			return this.db.get(learnedId).then((doc) => {
+			return this.nlcDb.get(learnedId).then((doc) => {
 				doc.dummy = 'ignore this';
 				rev = doc._rev;
-				return this.db.put(doc).then((info) => {
+				return this.nlcDb.put(doc).then((info) => {
 					assert(rev, 'existing rev should exist');
 					expect(rev).to.not.eql(info.rev);
 				});
@@ -62,11 +62,11 @@ describe('Testing of database.', function() {
 	context('Test posting documents in the database', function() {
 
 		it('should create a  document in the database with a `classification` field', function() {
-			assert(this.db, 'db should be initialized');
+			assert(this.nlcDb, 'db should be initialized');
 
-			return this.db.post(['classes'], 'learned', 'mySelection').then((result) => {
+			return this.nlcDb.post(['classes'], 'learned', 'mySelection').then((result) => {
 				let docId = result.id;
-				return this.db.get(docId).then((doc) => {
+				return this.nlcDb.get(docId).then((doc) => {
 					assert(doc.classification, 'classification should exists');
 					expect(doc.classification.length).to.eql(1);
 					assert(doc.selectedClass, 'selected class should exist');
@@ -76,11 +76,11 @@ describe('Testing of database.', function() {
 		});
 
 		it('should create a  document in the database with a `logs` field', function() {
-			assert(this.db, 'db should be initialized');
+			assert(this.nlcDb, 'db should be initialized');
 
-			return this.db.post(['log message'], 'negative_fb').then((result) => {
+			return this.nlcDb.post(['log message'], 'negative_fb').then((result) => {
 				let docId = result.id;
-				return this.db.get(docId).then((doc) => {
+				return this.nlcDb.get(docId).then((doc) => {
 					assert(doc.logs, 'logs should exists');
 					expect(doc.logs.length).to.eql(1);
 				});
@@ -88,11 +88,11 @@ describe('Testing of database.', function() {
 		});
 
 		it('should create a document in the database with thresholds', function() {
-			assert(this.db, 'db should be initialized');
+			assert(this.nlcDb, 'db should be initialized');
 
-			return this.db.post(['classes'], 'learned', 'mySelection').then((result) => {
+			return this.nlcDb.post(['classes'], 'learned', 'mySelection').then((result) => {
 				let docId = result.id;
-				return this.db.get(docId).then((doc) => {
+				return this.nlcDb.get(docId).then((doc) => {
 					assert(doc.lowConfidenceThreshold, 'low conf threshold should exists');
 					assert(doc.highConfidenceThreshold, 'high conf threshold should exists');
 					assert(doc.botVersion, 'bot version should exists');

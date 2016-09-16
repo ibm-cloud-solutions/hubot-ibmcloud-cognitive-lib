@@ -9,11 +9,13 @@
 const env = require('./env');
 const fs = require('fs');
 const path = require('path');
+const TAG = path.basename(__filename);
+const logger = require('./logger');
 
-const dbDir = path.join(env.dbPath, env.dbDirectory);
-
-const open = function(dbName) {
+const open = function(dbName, dbPath) {
+	const dbDir = path.join(dbPath || env.dbPath, env.dbDirectory);
 	let PouchDB, opts;
+	logger.info(`${TAG} Opening database [${dbName}] in directory [${dbDir}]`);
 	if (env.test){
 		PouchDB = require('pouchdb-memory');
 		opts = {

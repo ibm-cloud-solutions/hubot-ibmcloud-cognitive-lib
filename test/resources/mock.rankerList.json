@@ -1,0 +1,40 @@
+{
+  "rankers": [
+    {
+      "ranker_id": "cd02b5x110-rr-5103",
+      "url": "https://gateway-s.watsonplatform.net/retrieve-and-rank/api/v1/rankers/cd02b5x110-rr-5103",
+      "name": "test-ranker",
+      "created": "2016-06-29T15:24:48.919Z"
+    },
+    {
+      "ranker_id": "cd02b5x110-rr-5110",
+      "url": "https://gateway-s.watsonplatform.net/retrieve-and-rank/api/v1/rankers/cd02b5x110-rr-5110",
+      "name": "test-ranker",
+      "created": "2016-06-29T19:09:59.000Z"
+    },
+    {
+      "ranker_id": "cd02b5x110-rr-5074",
+      "url": "https://gateway-s.watsonplatform.net/retrieve-and-rank/api/v1/rankers/cd02b5x110-rr-5074",
+      "name": "test-ranker",
+      "created": "2016-06-29T03:19:33.914Z"
+  	},
+  	{
+  	  "ranker_id": "cd02b5x110-rr-0000",
+  	  "url": "https://gateway-s.watsonplatform.net/retrieve-and-rank/api/v1/rankers/cd02b5x110-rr-0000",
+  	  "name": "test-ranker",
+  	  "created": "2016-06-28T01:01:01.914Z"
+    },
+    {
+  	  "ranker_id": "cd02b5x110-rr-9999",
+  	  "url": "https://gateway-s.watsonplatform.net/retrieve-and-rank/api/v1/rankers/cd02b5x110-rr-9999",
+  	  "name": "test-ranker3",
+  	  "created": "2016-06-28T01:01:01.914Z"
+    },
+    {
+  	  "ranker_id": "cd02b5x110-rr-8888",
+  	  "url": "https://gateway-s.watsonplatform.net/retrieve-and-rank/api/v1/rankers/cd02b5x110-rr-8888",
+  	  "name": "test-ranker4",
+  	  "created": "2016-06-28T01:01:01.914Z"
+    }
+  ]
+}

@@ -11,13 +11,16 @@ let settings = {
 	nlc_url: process.env.VCAP_SERVICES_NATURAL_LANGUAGE_CLASSIFIER_0_CREDENTIALS_URL || process.env.HUBOT_WATSON_NLC_URL,
 	nlc_username: process.env.VCAP_SERVICES_NATURAL_LANGUAGE_CLASSIFIER_0_CREDENTIALS_USERNAME || process.env.HUBOT_WATSON_NLC_USERNAME,
 	nlc_password: process.env.VCAP_SERVICES_NATURAL_LANGUAGE_CLASSIFIER_0_CREDENTIALS_PASSWORD || process.env.HUBOT_WATSON_NLC_PASSWORD,
+	rr_url: process.env.VCAP_SERVICES_RETRIEVE_RANK_0_CREDENTIALS_URL || process.env.HUBOT_RETRIEVE_RANK_URL,
+	rr_username: process.env.VCAP_SERVICES_RETRIEVE_RANK_0_CREDENTIALS_USERNAME || process.env.HUBOT_RETRIEVE_RANK_USERNAME,
+	rr_password: process.env.VCAP_SERVICES_RETRIEVE_RANK_0_CREDENTIALS_PASSWORD || process.env.HUBOT_RETRIEVE_RANK_PASSWORD,
 	nlc_classifier: process.env.HUBOT_WATSON_NLC_CLASSIFIER || 'default-hubot-classifier',
 	nlc_autoApprove: process.env.HUBOT_WATSON_NLC_AUTO_APPROVE || false,
 	cloudantEndpoint: process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_HOST ? 'https://' + process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_HOST : process.env.HUBOT_CLOUDANT_ENDPOINT,
 	cloudantKey: process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_USERNAME || process.env.HUBOT_CLOUDANT_KEY,
 	cloudantPassword: process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_PASSWORD || process.env.HUBOT_CLOUDANT_PASSWORD,
-	cloudantDb: process.env.HUBOT_CLOUDANT_DB || 'nlc',
 	dbPath: process.env.HUBOT_DB_PATH || './',
+	initDbPath: process.env.HUBOT_INIT_DB_PATH || process.env.HUBOT_DB_PATH || './',
 	dbDirectory: process.env.HUBOT_DB_DIRECTORY || 'databases',
 	syncInterval: process.env.SYNC_INTERVAL || '1800000', // default 30 minutes
 	highThreshold: process.env.CONFIDENCE_THRESHOLD_HIGH || '0.8',
@@ -25,7 +28,9 @@ let settings = {
 	test: process.env.HUBOT_DB_TEST || false,
 	version: 'v1',
 	suppressErrors: process.env.SUPPRESS_ERRORS || false,
-	logLevel: process.env.COGNITIVE_LOG_LEVEL || 'error'
+	logLevel: process.env.COGNITIVE_LOG_LEVEL || 'error',
+	db_nlc_remote: process.env.HUBOT_CLOUDANT_NLC_DB || 'nlc',
+	db_rr_remote: process.env.HUBOT_CLOUDANT_RR_DB || 'rr'
 };
 
 // cloudantNoSQLDB service bound to application, overrides any other settings.

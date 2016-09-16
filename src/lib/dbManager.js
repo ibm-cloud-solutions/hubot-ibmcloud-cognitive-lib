@@ -37,7 +37,8 @@ function DBManager(options){
 
 	this.localDbName = (typeof options === 'string') ? options : options.localDbName;
 	this.remoteDbName = options.remoteDbName ? options.remoteDbName : this.localDbName;
-	this.db = PouchDB.open(this.localDbName);
+	this.localDbPath = options.localDbPath ? options.localDbPath : env.dbPath;
+	this.db = PouchDB.open(this.localDbName, this.localDbPath);
 
 	initializeDB(this.db).then(() => {
 		syncFn(this.db, this.localDbName, this.remoteDbName);
