@@ -168,7 +168,7 @@ RRManager.prototype._createCluster = function(params){
 		this.rr.createCluster(params, (err, response) => {
 			if (err) {
 				logger.error(`${TAG}: Error creating solr cluster.`, err);
-				logger.error(`${TAG} Options and data sent to train RR service.`, params);
+				logger.error(`${TAG} Options and data sent to create solr cluster.`, params);
 				reject('Error creating solr cluster');
 			}
 			else {
@@ -189,8 +189,7 @@ RRManager.prototype._uploadConfig = function(params){
 	return new Promise((resolve, reject) => {
 		this.rr.uploadConfig(params, (err, response) => {
 			if (err) {
-				logger.error(`${TAG}: Error creating solr cluster.`, err);
-				logger.error(`${TAG} Options and data sent to train RR service.`, params);
+				logger.error(`${TAG}: Error uploading solr config file.`, err);
 				reject('Error creating solr cluster');
 			}
 			else {
