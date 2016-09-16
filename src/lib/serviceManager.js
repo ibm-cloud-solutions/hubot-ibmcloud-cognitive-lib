@@ -415,6 +415,11 @@ serviceManager.prototype._getInstanceStatus = function(instanceId){
 					reject('Error getting status for ranker in training.');
 				}
 				else {
+					// If ranker is Training, record it's training duration
+					if (response.status === 'Training') {
+						let duration = Math.floor((Date.now() - new Date(response.created)) / 60000);
+						response.duration = duration > 0 ? duration : 0;
+					}
 					resolve(response);
 				}
 			});
@@ -425,6 +430,11 @@ serviceManager.prototype._getInstanceStatus = function(instanceId){
 					reject('Error getting status for classifier in training.');
 				}
 				else {
+					// If classifier is Training, record it's training duration
+					if (response.status === 'Training') {
+						let duration = Math.floor((Date.now() - new Date(response.created)) / 60000);
+						response.duration = duration > 0 ? duration : 0;
+					}
 					resolve(response);
 				}
 			});
