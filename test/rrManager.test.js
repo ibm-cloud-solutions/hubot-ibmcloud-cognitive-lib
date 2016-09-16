@@ -168,7 +168,7 @@ describe('Test the RRManager library', function(){
 			watson_rr.setupIfNeeded().then((result) => {
 				return watson_rr.rank('using the cf command line');
 			}).then((result) => {
-				expect(result.docs[0].title).to.be.equal('cli/reference/cfcommands/index.html');
+				expect(result.docs[0].url).to.be.equal('cli/reference/cfcommands/index.html');
 				done();
 			});
 		});
