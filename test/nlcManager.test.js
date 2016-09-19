@@ -22,6 +22,18 @@ describe('Test the NLCManager library', function(){
 	let trainingClassifier = 'test-classifier3';
 	let unavailableClassifier = 'test-classifier4';
 
+	let init = function(classifierName, training_data) {
+		watson_nlc_options = {
+			url: env.nlc_url,
+			username: env.nlc_username,
+			password: env.nlc_password,
+			classifierName: classifierName,
+			version: 'v1',
+			training_data
+		};
+		watson_nlc = new NLCManager(watson_nlc_options);
+	};
+
 	before(function(done){
 		dbSetup.setup().then((databases) => {
 			nlc_db = databases.nlcDb;
@@ -34,14 +46,7 @@ describe('Test the NLCManager library', function(){
 	});
 
 	beforeEach(function(){
-		watson_nlc_options = {
-			url: env.nlc_url,
-			username: env.nlc_username,
-			password: env.nlc_password,
-			classifierName: env.nlc_classifier,
-			version: 'v1'
-		};
-		watson_nlc = new NLCManager(watson_nlc_options);
+		init(env.nlc_classifier);
 	});
 
 	it('should classify statement as weather', function(done){
@@ -54,7 +59,6 @@ describe('Test the NLCManager library', function(){
 	it('Should monitor a classifier while it is being trained and delete old classifiers when training completes', function(done){
 		watson_nlc.monitorTraining('cd02b5x110-nlc-5110').then(function(result){
 			expect(result.status).to.be.equal('Available');
-
 			nlc_db.get('cd02b5x110-nlc-0000').catch((err) => {
 				expect(err.name).to.be.eql('not_found');
 				expect(err.reason).to.be.eql('deleted');
@@ -71,7 +75,7 @@ describe('Test the NLCManager library', function(){
 	});
 
 	it('should successfully get status of most recent training classifier', function(done){
-		watson_nlc.serviceManager.instanceName = trainingClassifier;
+		init(trainingClassifier);
 		watson_nlc.classifierStatus().then(function(result){
 			expect(result.status).to.be.equal('Training');
 			done();
@@ -105,7 +109,7 @@ describe('Test the NLCManager library', function(){
 		});
 
 		it('should fail to get status of classifier', function(done){
-			watson_nlc.serviceManager.instanceName = nonExistantClassifier;
+			init(nonExistantClassifier);
 			watson_nlc.classifierStatus().catch(function(error){
 				expect(error).to.be.equal(`No classifiers found under [${nonExistantClassifier}]`);
 				done();
@@ -113,7 +117,7 @@ describe('Test the NLCManager library', function(){
 		});
 
 		it('should fail to get an available/training classifier', function(done){
-			watson_nlc.serviceManager.instanceName = unavailableClassifier;
+			init(unavailableClassifier);
 			watson_nlc.classifierStatus().catch(function(error){
 				expect(error).to.be.equal(`No classifiers available under [${unavailableClassifier}]`);
 				done();
@@ -137,8 +141,7 @@ describe('Test the NLCManager library', function(){
 	});
 
 	it('Should start training classifier with provided training_data', function(done){
-		watson_nlc.serviceManager.instanceName = 'non-exist-classifier';
-		watson_nlc.serviceManager.opts.training_data = fs.createReadStream(path.resolve(__dirname, 'resources', 'training.data.csv'));
+		init('non-exist-classifier', fs.createReadStream(path.resolve(__dirname, 'resources', 'training.data.csv')));
 		watson_nlc.trainIfNeeded().then(function(result){
 			expect(result.status).to.be.equal('Training');
 			done();
@@ -147,13 +150,10 @@ describe('Test the NLCManager library', function(){
 
 	it('Should start training classifier with dynamic training_data', function(done){
 		let counter = 0;
-
-		watson_nlc.serviceManager.instanceName = 'non-exist-classifier';
-		watson_nlc.serviceManager.opts.training_data = function() {
+		init('non-exist-classifier', function() {
 			counter++;
 			return 'data1,class1\ndata2,class2';
-		};
-
+		});
 		watson_nlc.trainIfNeeded().then(function(result){
 			expect(result.status).to.be.equal('Training');
 			expect(counter).to.be.equal(1);
