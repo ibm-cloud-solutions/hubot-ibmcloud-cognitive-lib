@@ -3,10 +3,12 @@ node_js:
   - '4.2'
 before_install:
   - npm i -g npm@2
+  - npm i -g cracks
 install:
-  - npm install
+  - npm i
 script:
   - npm run lint
+  - cracks -p "test", "package.json" --silent
   - npm run coverage
 notifications:
   webhooks: 'http://cloud-solutions-travis.mybluemix.net/notifications'
