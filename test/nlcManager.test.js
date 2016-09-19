@@ -17,13 +17,12 @@ let nlc_db;
 
 describe('Test the NLCManager library', function(){
 	let watson_nlc;
-	let watson_nlc_options;
 	let nonExistantClassifier = 'test-classifier2';
 	let trainingClassifier = 'test-classifier3';
 	let unavailableClassifier = 'test-classifier4';
 
 	let init = function(classifierName, training_data) {
-		watson_nlc_options = {
+		let options = {
 			url: env.nlc_url,
 			username: env.nlc_username,
 			password: env.nlc_password,
@@ -31,7 +30,7 @@ describe('Test the NLCManager library', function(){
 			version: 'v1',
 			training_data
 		};
-		watson_nlc = new NLCManager(watson_nlc_options);
+		return new NLCManager(options);
 	};
 
 	before(function(done){
@@ -46,7 +45,7 @@ describe('Test the NLCManager library', function(){
 	});
 
 	beforeEach(function(){
-		init(env.nlc_classifier);
+		watson_nlc = init(env.nlc_classifier);
 	});
 
 	it('should classify statement as weather', function(done){
@@ -75,8 +74,7 @@ describe('Test the NLCManager library', function(){
 	});
 
 	it('should successfully get status of most recent training classifier', function(done){
-		init(trainingClassifier);
-		watson_nlc.classifierStatus().then(function(result){
+		init(trainingClassifier).classifierStatus().then(function(result){
 			expect(result.status).to.be.equal('Training');
 			done();
 		});
@@ -109,16 +107,14 @@ describe('Test the NLCManager library', function(){
 		});
 
 		it('should fail to get status of classifier', function(done){
-			init(nonExistantClassifier);
-			watson_nlc.classifierStatus().catch(function(error){
+			init(nonExistantClassifier).classifierStatus().catch(function(error){
 				expect(error).to.be.equal(`No classifiers found under [${nonExistantClassifier}]`);
 				done();
 			});
 		});
 
 		it('should fail to get an available/training classifier', function(done){
-			init(unavailableClassifier);
-			watson_nlc.classifierStatus().catch(function(error){
+			init(unavailableClassifier).classifierStatus().catch(function(error){
 				expect(error).to.be.equal(`No classifiers available under [${unavailableClassifier}]`);
 				done();
 			});
@@ -141,8 +137,7 @@ describe('Test the NLCManager library', function(){
 	});
 
 	it('Should start training classifier with provided training_data', function(done){
-		init('non-exist-classifier', fs.createReadStream(path.resolve(__dirname, 'resources', 'training.data.csv')));
-		watson_nlc.trainIfNeeded().then(function(result){
+		init('non-exist-classifier', fs.createReadStream(path.resolve(__dirname, 'resources', 'training.data.csv'))).trainIfNeeded().then(function(result){
 			expect(result.status).to.be.equal('Training');
 			done();
 		});
@@ -153,8 +148,7 @@ describe('Test the NLCManager library', function(){
 		init('non-exist-classifier', function() {
 			counter++;
 			return 'data1,class1\ndata2,class2';
-		});
-		watson_nlc.trainIfNeeded().then(function(result){
+		}).trainIfNeeded().then(function(result){
 			expect(result.status).to.be.equal('Training');
 			expect(counter).to.be.equal(1);
 			done();
