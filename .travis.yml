@@ -3,12 +3,11 @@ node_js:
   - '4.2'
 before_install:
   - npm i -g npm@2
-  - npm i -g cracks
 install:
   - npm i
 script:
   - npm run lint
-  - cracks -p "test", "package.json" --silent
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then npm i -g pumpthebreaks && pump; fi
   - npm run coverage
 notifications:
   webhooks: 'http://cloud-solutions-travis.mybluemix.net/notifications'
