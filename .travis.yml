@@ -7,7 +7,7 @@ install:
   - npm i
 script:
   - npm run lint
-  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then npm i -g pumpthebreaks && pump; fi
   - npm run coverage
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then npm i -g pumpthebreaks && pump; fi
 notifications:
   webhooks: 'http://cloud-solutions-travis.mybluemix.net/notifications'
