@@ -18,10 +18,27 @@ let docs = path.resolve(__dirname, 'resources', 'mock.documents.json');
 
 describe('Test the RRManager library', function(){
 	let watson_rr;
-	let watson_rr_options;
 	const nonExistentRanker = 'test-ranker2';
 	const trainingRanker = 'test-ranker3';
 	const unavailableRanker = 'test-ranker4';
+
+	let init = function(rankerName, training_data){
+		let options = {
+			url: env.rr_url,
+			username: env.rr_username,
+			password: env.rr_password,
+			clusterName: 'test-cluster',
+			configName: 'test-config',
+			config: 'test/resources/test-config.zip',
+			collectionName: 'test-collection',
+			documents: path.resolve(__dirname, 'resources', 'mock.documents.json'),
+			rankerName: rankerName,
+			version: 'v1',
+			maxRankers: 3,
+			training_data
+		};
+		return new RRManager(options);
+	};
 
 	before(function(done){
 		dbSetup.setup().then((databases) => {
@@ -31,20 +48,7 @@ describe('Test the RRManager library', function(){
 	});
 
 	beforeEach(function(){
-		watson_rr_options = {
-			url: env.rr_url,
-			username: env.rr_username,
-			password: env.rr_password,
-			clusterName: 'test-cluster',
-			configName: 'test-config',
-			config: 'test/resources/test-config.zip',
-			collectionName: 'test-collection',
-			documents: path.resolve(__dirname, 'resources', 'mock.documents.json'),
-			rankerName: 'test-ranker',
-			version: 'v1',
-			maxRankers: 3
-		};
-		watson_rr = new RRManager(watson_rr_options);
+		watson_rr = init('test-ranker');
 	});
 
 	describe('Test the solr cluster methods', function(){
@@ -192,8 +196,7 @@ describe('Test the RRManager library', function(){
 		});
 
 		it('should successfully get status of most recent training ranker', function(done){
-			watson_rr.serviceManager.instanceName = trainingRanker;
-			watson_rr.rankerStatus().then((result) => {
+			init(trainingRanker).rankerStatus().then((result) => {
 				expect(result.status).to.be.equal('Training');
 				done();
 			});
@@ -226,9 +229,9 @@ describe('Test the RRManager library', function(){
 		});
 
 		it('Should start training ranker with training_data from db', function(done){
-			watson_rr.serviceManager.instanceName = 'non-exist-ranker';
-			watson_rr.setupIfNeeded().then((result) => {
-				return watson_rr.trainIfNeeded();
+			let temp_rr_instance = init('non-exist-ranker');
+			temp_rr_instance.setupIfNeeded().then((result) => {
+				return temp_rr_instance.trainIfNeeded();
 			}).then((result) => {
 				expect(result.status).to.be.equal('Training');
 				done();
@@ -236,9 +239,7 @@ describe('Test the RRManager library', function(){
 		});
 
 		it('Should start training ranker with provided training_data', function(done){
-			watson_rr.serviceManager.instanceName = 'non-exist-ranker';
-			watson_rr_options.training_data = fs.createReadStream(path.resolve(__dirname, 'resources', 'training.data.csv'));
-			watson_rr.trainIfNeeded().then((result) => {
+			init('non-exist-ranker', fs.createReadStream(path.resolve(__dirname, 'resources', 'training.data.csv'))).trainIfNeeded().then((result) => {
 				expect(result.status).to.be.equal('Training');
 				done();
 			});
@@ -264,16 +265,14 @@ describe('Test the RRManager library', function(){
 		});
 
 		it('should fail to get status of ranker', function(done){
-			watson_rr.serviceManager.instanceName = nonExistentRanker;
-			watson_rr.rankerStatus().catch(function(error){
+			init(nonExistentRanker).rankerStatus().catch(function(error){
 				expect(error).to.be.equal(`No rankers found under [${nonExistentRanker}]`);
 				done();
 			});
 		});
 
 		it('should fail to get an available/training ranker', function(done){
-			watson_rr.serviceManager.instanceName = unavailableRanker;
-			watson_rr.rankerStatus().catch(function(error){
+			init(unavailableRanker).rankerStatus().catch(function(error){
 				expect(error).to.be.equal(`No rankers available under [${unavailableRanker}]`);
 				done();
 			});
