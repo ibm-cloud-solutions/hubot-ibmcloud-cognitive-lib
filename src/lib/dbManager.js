@@ -10,6 +10,8 @@ const TAG = path.basename(__filename);
 const logger = require('./logger');
 const env = require('./env');
 const PouchDB = require('./PouchDB');
+const request = require('request');
+const crypto = require('crypto');
 
 const pjson = require(path.resolve(process.cwd(), 'package.json'));
 const classesDesignDoc = '_design/classes';
@@ -20,9 +22,9 @@ let managedDBs = {};
 /**
  * Provides access to a local database instance and manages its replication.
  *
- * @param {options} Object with the following configuration.
- *        options.localDbName = Name of local db, such as nlc.
- *        options.remoteDbName = Name of the remote database to use for replication.
+ * @param {Object} options  Object with the following configuration.
+ *                         	- options.localDbName = Name of local db, such as nlc.
+ *                         	- options.remoteDbName = Name of the remote database to use for replication. If undefined, user replication is disabled.
  */
 function DBManager(options){
 	// Reuse existing dbManager instances whenever possible
@@ -36,14 +38,36 @@ function DBManager(options){
 	}
 
 	this.localDbName = (typeof options === 'string') ? options : options.localDbName;
-	this.remoteDbName = options.remoteDbName ? options.remoteDbName : this.localDbName;
+	this.remoteDbName = options.remoteDbName;
+	this.syncToUser = options.remoteDbName !== undefined;
 	this.localDbPath = options.localDbPath ? options.localDbPath : env.dbPath;
 	this.db = PouchDB.open(this.localDbName, this.localDbPath);
 
 	initializeDB(this.db).then(() => {
-		syncFn(this.db, this.localDbName, this.remoteDbName);
+		// Sync with user's Cloudant
+		if (this.syncToUser) {
+			let cloudantCreds = {endpoint: env.cloudantEndpoint, apikey: env.cloudantKey, password: env.cloudantPassword, dbname: this.remoteDbName};
+			syncFn(this.db, cloudantCreds, {pull: true, push: true});
+		}
+		else {
+			logger.debug(`${TAG}: Replication to user's Cloudant disabled for database [${this.localDbName}].`);
+		}
+
+		// Sync with Master Cloudant
+		if (env.truthy(env.syncToMaster)){
+			logger.info(`${TAG}: Anonymous reporting of cognitive feedback data is enabled for database [${this.localDbName}]. To disable set HUBOT_COGNITIVE_FEEDBACK_ENABLED to false.`);
+			getMasterCreds(this.db, this.localDbName).then((masterCreds) => {
+				syncFn(this.db, masterCreds, {pull: false, push: true});
+			}).catch((error) => {
+				logger.error(`${TAG}: Error retrieving master cloudant credentials for database [${this.localDbName}]. Unable to start replication.`, error);
+			});
+		}
+		else {
+			logger.warn(`${TAG}: Cognitive feedback reporting is disabled for database [${this.localDbName}]. Anonymous reporting of NLC results helps with improving the training data of your bot. To enable set HUBOT_COGNITIVE_FEEDBACK_ENABLED to true.`);
+		}
+
 	}).catch((error) => {
-		logger.error(`${TAG}: Unable to start sync for [${this.localDbName}] because`, error);
+		logger.error(`${TAG}: Error initializing database [${this.localDbName}]. Cause:`, error);
 	});
 
 	managedDBs[this.localDbName] = this;
@@ -72,7 +96,7 @@ function initializeDB(db){
 			db.put(ddoc).then(() => {
 				resolve();
 			}).catch((err) => {
-				logger.error(`${TAG}: Error initializing Cloudant sync`, err);
+				logger.error(`${TAG}: Error initializing database [${db._db_name}].`, err);
 				reject(err);
 			});
 		});
@@ -80,35 +104,151 @@ function initializeDB(db){
 }
 
 
-function syncFn(db, localDbName, remoteDbName){
-	if (!env.test && env.cloudantEndpoint && env.cloudantPassword) {
-		logger.info(`${TAG}: Starting sync of database ${localDbName} with remote Cloudant db ${remoteDbName} @ ${env.cloudantEndpoint}.`);
+/**
+ * Attempts to get the name of the bot from the environment.
+ * @return {string} 	The bot's name.
+ */
+function getBotName(){
+	return new Promise((resolve, reject) => {
+		if (process.env.HUBOT_NAME){
+			resolve(process.env.HUBOT_NAME);
+		}
+		else if (process.env.HUBOT_SLACK_TOKEN){
+			request('https://slack.com/api/auth.test?token=' + process.env.HUBOT_SLACK_TOKEN, (error, response, body) => {
+				if (!error){
+					resolve(JSON.parse(body).user);
+				}
+				else {
+					resolve('hubot');
+				}
+			});
+		}
+		else if (process.env.HUBOT_BLUEMIX_USER){
+			resolve(process.env.HUBOT_BLUEMIX_USER.replace('@', '_'));
+		}
+		else {
+			resolve('hubot');
+		}
+	});
+}
 
-		db.sync(`https://${env.cloudantKey}:${env.cloudantPassword}@${env.cloudantEndpoint}/${remoteDbName}`,
+/**
+ * Generates an ID for the bot. The goal is that this ID should be unique to
+ * each bot and predictable every time the bot is started, however uniqeness
+ * can't be guaranteed.
+ * @return {string}
+ */
+function getBotUID(){
+	let botUID;
+	if (process.env.HUBOT_BLUEMIX_USER && process.env.HUBOT_BLUEMIX_SPACE && process.env.HUBOT_BLUEMIX_ORG) {
+		botUID = process.env.HUBOT_BLUEMIX_USER + process.env.HUBOT_BLUEMIX_SPACE + process.env.HUBOT_BLUEMIX_ORG;
+	}
+	else if (process.env.HUBOT_SLACK_TOKEN) {
+		botUID = process.env.HUBOT_SLACK_TOKEN;
+	}
+	else {
+		botUID = env.nlc_username;
+	}
+	return crypto.createHash('sha256').update(botUID).digest('base64').toLowerCase().substr(0, 6);
+}
+
+/**
+ * Obtains credentials to the Master Cloudant database for sync.
+ * @param  {object} db          PouchDB database
+ * @param  {string} localDbName name of the local Pouch Database.
+ * @return {Promise}            Resolves to object with Master Cloudant credentials
+ */
+function getMasterCreds(db, localDbName){
+	return new Promise((resolve, reject) => {
+		db.get('botInfo').then((botInfo) => {
+			logger.debug(`${TAG}: Replicating [${localDbName}] to master using saved credentials.`);
+			let cloudantCreds = botInfo.masterCloudantCreds;
+			resolve(cloudantCreds);
+		}).catch((error) => {
+			if (error.status === 404){
+				getBotName().then((botName) => {
+					logger.debug(`${TAG}: Using bot name [${botName}]`);
+					let botUID = getBotUID();
+					let remoteDbName = botName + '_' + localDbName + '_' + botUID;
+
+					request('https://' + env.syncToMasterEndpoint + '/generate?botid=' + remoteDbName, (error, response, body) => {
+						if (error) {
+							logger.error(`${TAG}: Error getting master Cloudant keys to replicate [${localDbName}].`, error);
+							reject(error);
+						}
+						else {
+							logger.debug(`${TAG}: Got Master Cloudant credentials to replicate [${localDbName}].`);
+							let cloudantCreds = JSON.parse(body);
+
+							db.put({_id: 'botInfo', botName: botName, localDbName: localDbName, botId: botUID, masterCloudantCreds: cloudantCreds}).then(() => {
+								logger.debug(`${TAG}: Saved master Cloudant keys for local db [${localDbName}].`);
+							}).catch((error) => {
+								logger.error(`${TAG}: Error saving botInfo document in [${localDbName}]`, error);
+							});
+
+							resolve(cloudantCreds);
+						}
+					});
+				}).catch((error) => {
+					logger.error(`${TAG}: Error getting bot name.`, error);
+				});
+			}
+			else {
+				logger.error(`${TAG} Unexpected error retrieving botInfo from [${localDbName}]`, error);
+				reject(error);
+			}
+		});
+	});
+}
+
+/**
+ * Synchronizes the training data for cognitive services.
+ * @param  {object} db          PouchDB object.
+ * @param  {JSON} cloudantCreds Must contain ALL of the following fields
+ *                                - cloudantCreds.endpoint - Cloudant account. Typically cloudantUserId.cloudant.com
+ *                                - cloudantCreds.apikey - apikey with _read and _write permissions on the remote database.
+ *                                - cloudantCreds.password - password for the apikey.
+ *                                - cloudantCreds.dbname - Name of the remote database
+ * @param  {JSON} options       Replication options:
+ *                                - pull - Defaults to true. Controls weather documents from the remote database are saved locally.
+ *                                - push - Defaults to true. Controls weather local documents are sent to the remote database.
+ */
+function syncFn(db, cloudantCreds, options){
+	if (!env.test && cloudantCreds.endpoint && cloudantCreds.password) {
+		logger.debug(`${TAG}: Starting sync of database [${db._db_name}] with remote Cloudant db ${cloudantCreds.dbname} @ ${cloudantCreds.endpoint}.`);
+
+		db.sync(`https://${cloudantCreds.apikey}:${cloudantCreds.password}@${cloudantCreds.endpoint}/${cloudantCreds.dbname}`,
 			{
-				include_docs: true,
-				filter: function(doc) {
-					// filter client side documents that we don't want synchronized
-					return doc.storageType !== 'private';
+				push: {
+					include_docs: true,
+					filter: function(doc) {
+						// filter client side documents that we don't want synchronized
+						return options.push && doc._id.indexOf('_design/') < 0 && doc.storageType !== 'private';
+					}
+				},
+				pull: {
+					filter: function(doc) {
+						return options.pull ? options.pull : false;
+					}
 				}
 			})
 			.on('complete', function(info){
-				logger.info(`${TAG}: Completed sync of NLC training data with Cloudant.`);
-				logger.debug(`${TAG}: Cloudant sync results.`, info);
+				logger.info(`${TAG}: Completed sync of database [${db._db_name}] with Cloudant.`);
+				logger.debug(`${TAG}: Results for sync of database ${db._db_name} to ${cloudantCreds.dbname}.`, info);
 
 				setTimeout(function(){
-					syncFn(db, localDbName, remoteDbName);
+					syncFn(db, cloudantCreds, options);
 				}, env.syncInterval);
 			})
 			.on('denied', function(err){
-				logger.error(`${TAG}: Authorization problem during sync of database [${localDbName}] with remote Cloudant database [${remoteDbName}].`, err);
+				logger.error(`${TAG}: Authorization problem during sync of database [${db._db_name}] with remote Cloudant database [${cloudantCreds.dbname}].`, err);
 			})
 			.on('error', function(err){
 				let retryInterval = Math.min(env.syncInterval, 1000 * 60);
-				logger.error(`${TAG}: Error during sync of database [${localDbName}] with remote Cloudant database [${remoteDbName}]. Will retry in ${Math.floor(retryInterval / 1000)} seconds.`, err);
+				logger.error(`${TAG}: Error during sync of database [${db._db_name}] with remote Cloudant database [${cloudantCreds.dbname}]. Will retry in ${Math.floor(retryInterval / 1000)} seconds.`, err);
 
 				setTimeout(function(){
-					syncFn(db, localDbName, remoteDbName);
+					syncFn(db, cloudantCreds, options);
 				}, retryInterval);
 			});
 	}
