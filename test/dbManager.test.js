@@ -10,7 +10,7 @@ const expect = require('chai').expect;
 const assert = require('chai').assert;
 const testDbs = require('./setupTestDb');
 
-const pouch = require('../src/lib/PouchDb.js');
+const pouch = require('../src/lib/PouchDB');
 const nock = require('nock');
 const DBManager = require('../src/lib/dbManager');
 const path = require('path');
