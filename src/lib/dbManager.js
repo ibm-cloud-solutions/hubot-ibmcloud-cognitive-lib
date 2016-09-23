@@ -10,19 +10,19 @@ const TAG = path.basename(__filename);
 const logger = require('./logger');
 const env = require('./env');
 const PouchDB = require('./PouchDB');
+const botIdentity = require('./botIdentity');
+const request = require('request');
 
 const pjson = require(path.resolve(process.cwd(), 'package.json'));
 const classesDesignDoc = '_design/classes';
-const classesView = 'classes/byClass';
-const targetView = 'classes/byTarget';
 
 let managedDBs = {};
 /**
  * Provides access to a local database instance and manages its replication.
  *
- * @param {options} Object with the following configuration.
- *        options.localDbName = Name of local db, such as nlc.
- *        options.remoteDbName = Name of the remote database to use for replication.
+ * @param {Object} options  Object with the following configuration.
+ *                         	- options.localDbName = Name of local db, such as nlc.
+ *                         	- options.remoteDbName = Name of the remote database to use for replication. If undefined, user replication is disabled.
  */
 function DBManager(options){
 	// Reuse existing dbManager instances whenever possible
@@ -36,14 +36,36 @@ function DBManager(options){
 	}
 
 	this.localDbName = (typeof options === 'string') ? options : options.localDbName;
-	this.remoteDbName = options.remoteDbName ? options.remoteDbName : this.localDbName;
+	this.remoteDbName = options.remoteDbName;
+	this.syncToUser = options.remoteDbName !== undefined;
 	this.localDbPath = options.localDbPath ? options.localDbPath : env.dbPath;
 	this.db = PouchDB.open(this.localDbName, this.localDbPath);
 
 	initializeDB(this.db).then(() => {
-		syncFn(this.db, this.localDbName, this.remoteDbName);
+		// Sync with user's Cloudant
+		if (this.syncToUser) {
+			let cloudantCreds = {endpoint: env.cloudantEndpoint, apikey: env.cloudantKey, password: env.cloudantPassword, dbname: this.remoteDbName};
+			syncFn(this.db, cloudantCreds, {pull: true, push: true});
+		}
+		else {
+			logger.debug(`${TAG}: Replication to user's Cloudant disabled for database [${this.localDbName}].`);
+		}
+
+		// Sync with Master Cloudant
+		if (env.truthy(env.syncToMaster)){
+			logger.info(`${TAG}: Anonymous reporting of cognitive feedback data is enabled for database [${this.localDbName}]. To disable set HUBOT_COGNITIVE_FEEDBACK_ENABLED to false.`);
+			getMasterCreds(this.db, this.localDbName).then((masterCreds) => {
+				syncFn(this.db, masterCreds, {pull: false, push: true});
+			}).catch((error) => {
+				logger.error(`${TAG}: Error retrieving master cloudant credentials for database [${this.localDbName}]. Unable to start replication.`, error);
+			});
+		}
+		else {
+			logger.warn(`${TAG}: Cognitive feedback reporting is disabled for database [${this.localDbName}]. Anonymous reporting of NLC results helps with improving the training data of your bot. To enable set HUBOT_COGNITIVE_FEEDBACK_ENABLED to true.`);
+		}
+
 	}).catch((error) => {
-		logger.error(`${TAG}: Unable to start sync for [${this.localDbName}] because`, error);
+		logger.error(`${TAG}: Error initializing database [${this.localDbName}]. Cause:`, error);
 	});
 
 	managedDBs[this.localDbName] = this;
@@ -72,7 +94,7 @@ function initializeDB(db){
 			db.put(ddoc).then(() => {
 				resolve();
 			}).catch((err) => {
-				logger.error(`${TAG}: Error initializing Cloudant sync`, err);
+				logger.error(`${TAG}: Error initializing database [${db._db_name}].`, err);
 				reject(err);
 			});
 		});
@@ -80,35 +102,103 @@ function initializeDB(db){
 }
 
 
-function syncFn(db, localDbName, remoteDbName){
-	if (!env.test && env.cloudantEndpoint && env.cloudantPassword) {
-		logger.info(`${TAG}: Starting sync of database ${localDbName} with remote Cloudant db ${remoteDbName} @ ${env.cloudantEndpoint}.`);
+/**
+ * Obtains credentials to the Master Cloudant database for sync.
+ * @param  {object} db          PouchDB database
+ * @param  {string} localDbName name of the local Pouch Database.
+ * @return {Promise}            Resolves to object with Master Cloudant credentials
+ */
+function getMasterCreds(db, localDbName){
+	return new Promise((resolve, reject) => {
+		db.get('botInfo').then((botInfo) => {
+			logger.debug(`${TAG}: Replicating [${localDbName}] to master using saved credentials.`);
+			let cloudantCreds = botInfo.masterCloudantCreds;
+			resolve(cloudantCreds);
+		}).catch((error) => {
+			if (error.status === 404){
+				botIdentity.getBotName().then((botName) => {
+					logger.debug(`${TAG}: Using bot name [${botName}]`);
+					let botUID = botIdentity.getBotUID();
+					let remoteDbName = (botName + '_' + localDbName + '_' + botUID).replace(' ', '').toLowerCase();
 
-		db.sync(`https://${env.cloudantKey}:${env.cloudantPassword}@${env.cloudantEndpoint}/${remoteDbName}`,
+					request('https://' + env.syncToMasterEndpoint + '/generate?botid=' + remoteDbName, (error, response, body) => {
+						if (error) {
+							logger.error(`${TAG}: Error getting master Cloudant keys to replicate [${localDbName}].`, error);
+							reject(error);
+						}
+						else {
+							logger.debug(`${TAG}: Got Master Cloudant credentials to replicate [${localDbName}].`);
+							let cloudantCreds = JSON.parse(body);
+
+							db.put({_id: 'botInfo', botName: botName, localDbName: localDbName, botId: botUID, masterCloudantCreds: cloudantCreds}).then(() => {
+								logger.debug(`${TAG}: Saved master Cloudant keys for local db [${localDbName}].`);
+							}).catch((error) => {
+								logger.error(`${TAG}: Error saving botInfo document in [${localDbName}]`, error);
+							});
+
+							resolve(cloudantCreds);
+						}
+					});
+				}).catch((error) => {
+					logger.error(`${TAG}: Error getting bot name.`, error);
+				});
+			}
+			else {
+				logger.error(`${TAG} Unexpected error retrieving botInfo from [${localDbName}]`, error);
+				reject(error);
+			}
+		});
+	});
+}
+
+/**
+ * Synchronizes the training data for cognitive services.
+ * @param  {object} db          PouchDB object.
+ * @param  {JSON} cloudantCreds Must contain ALL of the following fields
+ *                                - cloudantCreds.endpoint - Cloudant account. Typically cloudantUserId.cloudant.com
+ *                                - cloudantCreds.apikey - apikey with _read and _write permissions on the remote database.
+ *                                - cloudantCreds.password - password for the apikey.
+ *                                - cloudantCreds.dbname - Name of the remote database
+ * @param  {JSON} options       Replication options:
+ *                                - pull - Defaults to true. Controls weather documents from the remote database are saved locally.
+ *                                - push - Defaults to true. Controls weather local documents are sent to the remote database.
+ */
+function syncFn(db, cloudantCreds, options){
+	if (cloudantCreds.endpoint && cloudantCreds.password && cloudantCreds.apikey) {
+		logger.debug(`${TAG}: Starting sync of database [${db._db_name}] with remote Cloudant db ${cloudantCreds.dbname} @ ${cloudantCreds.endpoint}.`);
+
+		db.sync(`https://${cloudantCreds.apikey}:${cloudantCreds.password}@${cloudantCreds.endpoint}/${cloudantCreds.dbname}`,
 			{
-				include_docs: true,
-				filter: function(doc) {
-					// filter client side documents that we don't want synchronized
-					return doc.storageType !== 'private';
+				push: {
+					include_docs: true,
+					filter: function(doc) {
+						// filter client side documents that we don't want synchronized
+						return options.push && doc._id.indexOf('_design/') < 0 && doc.storageType !== 'private';
+					}
+				},
+				pull: {
+					filter: function(doc) {
+						return options.pull ? options.pull : false;
+					}
 				}
 			})
 			.on('complete', function(info){
-				logger.info(`${TAG}: Completed sync of NLC training data with Cloudant.`);
-				logger.debug(`${TAG}: Cloudant sync results.`, info);
+				logger.info(`${TAG}: Completed sync of database [${db._db_name}] with Cloudant.`);
+				logger.debug(`${TAG}: Results for sync of database ${db._db_name} to ${cloudantCreds.dbname}.`, info);
 
 				setTimeout(function(){
-					syncFn(db, localDbName, remoteDbName);
+					syncFn(db, cloudantCreds, options);
 				}, env.syncInterval);
 			})
 			.on('denied', function(err){
-				logger.error(`${TAG}: Authorization problem during sync of database [${localDbName}] with remote Cloudant database [${remoteDbName}].`, err);
+				logger.error(`${TAG}: Authorization problem during sync of database [${db._db_name}] with remote Cloudant database [${cloudantCreds.dbname}].`, err);
 			})
 			.on('error', function(err){
 				let retryInterval = Math.min(env.syncInterval, 1000 * 60);
-				logger.error(`${TAG}: Error during sync of database [${localDbName}] with remote Cloudant database [${remoteDbName}]. Will retry in ${Math.floor(retryInterval / 1000)} seconds.`, err);
+				logger.error(`${TAG}: Error during sync of database [${db._db_name}] with remote Cloudant database [${cloudantCreds.dbname}]. Will retry in ${Math.floor(retryInterval / 1000)} seconds.`, err);
 
 				setTimeout(function(){
-					syncFn(db, localDbName, remoteDbName);
+					syncFn(db, cloudantCreds, options);
 				}, retryInterval);
 			});
 	}
@@ -117,14 +207,6 @@ function syncFn(db, localDbName, remoteDbName){
 	}
 };
 
-/**
- * @deprecated Keeping this here for compability with the previous implementation, must remove once dependencies are updated.
- */
-DBManager.prototype.open = function() {
-	return new Promise((resolve, reject) => {
-		resolve(this.db);
-	});
-};
 
 /**
  * Retrieve a document from the database.
@@ -240,122 +322,5 @@ DBManager.prototype.info = function(opts){
 	});
 };
 
-
-/**
- * @deprecated Use nlcconfig.getAllClasses.
- */
-DBManager.prototype.getAllClasses = function(approvedAfterDate) {
-	// assumption that the database can be held in memory
-	// note classifier will break if this is not the case
-	// return an array of [text, className]
-	return new Promise((resolve, reject) => {
-		let result = [];
-		if (this.db){
-			// get all of the class types
-			return this.db.query(classesView, {
-				include_docs: true
-			}).then((res) => {
-				if (approvedAfterDate && typeof approvedAfterDate === 'number'){
-					approvedAfterDate = new Date(approvedAfterDate);
-				}
-
-				for (let row of res.rows){
-					// Filter records without an approvedDate or approved before the given date.
-					if (approvedAfterDate) {
-						if (row.doc.approved){
-							let approvedDate = row.doc.approved_timestamp || row.doc.approved;
-							if (new Date(parseInt(approvedDate, 10)) < approvedAfterDate){
-								continue;
-							}
-						}
-						else {
-							continue;
-						}
-					}
-
-					let className = row.key;
-					// allow short hand assignment for classifications
-					let text = row.doc.text || row.doc.classification.text;
-
-					result.push([
-						text, className
-					]);
-				}
-				return resolve(result);
-			}).catch(function(err) {
-				reject(err);
-			});
-		}
-		else {
-			reject('Database needs to be open before calling getLocalClasses');
-		}
-	});
-};
-
-/**
- * @deprecated Use nlcconfig.getClassEmitTarget.
- */
-DBManager.prototype.getClassEmitTarget = function(className) {
-	return this.db.query(targetView, {
-		key: className
-	}).then((result) => {
-		if (result.rows.length > 0){
-			let resp = {
-				class: result.rows[0].id,
-				description: result.rows[0].value.length >= 3 ? result.rows[0].value[2] : result.rows[0].id,
-				target: result.rows[0].value[0],
-				parameters: result.rows[0].value[1]
-			};
-
-			// loop through and resolve $ref if defined
-			if (resp.parameters){
-				let ps = [];
-				for (let p of resp.parameters){
-					ps.push(
-						new Promise((resolve, reject) => {
-							if (p.values && !Array.isArray(p.values)){
-								if (p.values.$ref){
-									let ref = p.values.$ref;
-									return this.db.get(ref).then((doc) => {
-										if (doc.values){
-											p.values = doc.values;
-											resolve(p);
-										}
-										else {
-											resolve(p);
-										}
-									});
-								}
-								else {
-									// skip over, return object
-									resolve(p);
-								}
-							}
-							else {
-								resolve(p);
-							}
-						})
-					);
-				}
-				return Promise.all(ps).then((params) => {
-					resp.parameters = params;
-					return resp;
-				}).catch(() => {
-					// can't execute this emit target, so return null
-					logger.error(`${TAG} Couldn't resolve parameters for class ${className}. This is likely caused by incorrect data in the database. Was trying to resolve initial params`, resp.parameters);
-					return null;
-				});
-			}
-			else {
-				// no parameters
-				return resp;
-			}
-		}
-		else {
-			logger.error(`${TAG} Class ${className} doesn't exist in the database. This is likely an indication of (1) the Watson NLC needs to be re-trained with the current data, or (2) a problem initializing or synchronizing the database.`);
-			return null;
-		}
-	});
-};
 
 module.exports = DBManager;

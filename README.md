@@ -192,12 +192,6 @@ The training data has now been created and will be used when training the classi
 
 Following is a description of the various functions exposed by this package:
 
-### Database related functions (nlcDb)
-
-These are functions used to control the underlying database directly.
-
-1. `nlcDb.open()`
-	- Opens the underlying database for use by the various functions.
 
 ### NLC / Parameter Definition related functions (nlcconfig)
 

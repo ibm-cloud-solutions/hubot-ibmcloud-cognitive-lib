@@ -19,7 +19,7 @@ const open = function(dbName, dbPath) {
 	if (env.test){
 		PouchDB = require('pouchdb-memory');
 		opts = {
-			name: 'test'
+			name: dbName
 		};
 	}
 	else {
