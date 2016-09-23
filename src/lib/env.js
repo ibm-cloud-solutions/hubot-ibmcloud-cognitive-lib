@@ -35,6 +35,14 @@ let settings = {
 	initDbPath: process.env.HUBOT_INIT_DB_PATH || process.env.HUBOT_DB_PATH || './',
 	dbDirectory: process.env.HUBOT_DB_DIRECTORY || 'databases',
 
+	// Bot identification
+	botName: process.env.HUBOT_NAME,
+	slackApi: process.env.HUBOT_SLACK_API || 'https://slack.com/api',
+	slackToken: process.env.HUBOT_SLACK_TOKEN,
+	bluemixUser: process.env.HUBOT_BLUEMIX_USER,
+	bluemixOrg: process.env.HUBOT_BLUEMIX_ORG,
+	bluemixSpace: process.env.HUBOT_BLUEMIX_SPACE,
+
 	// Other settings
 	suppressErrors: process.env.SUPPRESS_ERRORS || false,
 	test: process.env.HUBOT_DB_TEST || false,

@@ -10,13 +10,11 @@ const TAG = path.basename(__filename);
 const logger = require('./logger');
 const env = require('./env');
 const PouchDB = require('./PouchDB');
+const botIdentity = require('./botIdentity');
 const request = require('request');
-const crypto = require('crypto');
 
 const pjson = require(path.resolve(process.cwd(), 'package.json'));
 const classesDesignDoc = '_design/classes';
-const classesView = 'classes/byClass';
-const targetView = 'classes/byTarget';
 
 let managedDBs = {};
 /**
@@ -105,54 +103,6 @@ function initializeDB(db){
 
 
 /**
- * Attempts to get the name of the bot from the environment.
- * @return {string} 	The bot's name.
- */
-function getBotName(){
-	return new Promise((resolve, reject) => {
-		if (process.env.HUBOT_NAME){
-			resolve(process.env.HUBOT_NAME);
-		}
-		else if (process.env.HUBOT_SLACK_TOKEN){
-			request('https://slack.com/api/auth.test?token=' + process.env.HUBOT_SLACK_TOKEN, (error, response, body) => {
-				if (!error){
-					resolve(JSON.parse(body).user);
-				}
-				else {
-					resolve('hubot');
-				}
-			});
-		}
-		else if (process.env.HUBOT_BLUEMIX_USER){
-			resolve(process.env.HUBOT_BLUEMIX_USER.replace('@', '_'));
-		}
-		else {
-			resolve('hubot');
-		}
-	});
-}
-
-/**
- * Generates an ID for the bot. The goal is that this ID should be unique to
- * each bot and predictable every time the bot is started, however uniqeness
- * can't be guaranteed.
- * @return {string}
- */
-function getBotUID(){
-	let botUID;
-	if (process.env.HUBOT_BLUEMIX_USER && process.env.HUBOT_BLUEMIX_SPACE && process.env.HUBOT_BLUEMIX_ORG) {
-		botUID = process.env.HUBOT_BLUEMIX_USER + process.env.HUBOT_BLUEMIX_SPACE + process.env.HUBOT_BLUEMIX_ORG;
-	}
-	else if (process.env.HUBOT_SLACK_TOKEN) {
-		botUID = process.env.HUBOT_SLACK_TOKEN;
-	}
-	else {
-		botUID = env.nlc_username;
-	}
-	return crypto.createHash('sha256').update(botUID).digest('base64').toLowerCase().substr(0, 6);
-}
-
-/**
  * Obtains credentials to the Master Cloudant database for sync.
  * @param  {object} db          PouchDB database
  * @param  {string} localDbName name of the local Pouch Database.
@@ -166,10 +116,10 @@ function getMasterCreds(db, localDbName){
 			resolve(cloudantCreds);
 		}).catch((error) => {
 			if (error.status === 404){
-				getBotName().then((botName) => {
+				botIdentity.getBotName().then((botName) => {
 					logger.debug(`${TAG}: Using bot name [${botName}]`);
-					let botUID = getBotUID();
-					let remoteDbName = botName + '_' + localDbName + '_' + botUID;
+					let botUID = botIdentity.getBotUID();
+					let remoteDbName = (botName + '_' + localDbName + '_' + botUID).replace(' ', '').toLowerCase();
 
 					request('https://' + env.syncToMasterEndpoint + '/generate?botid=' + remoteDbName, (error, response, body) => {
 						if (error) {
@@ -214,7 +164,7 @@ function getMasterCreds(db, localDbName){
  *                                - push - Defaults to true. Controls weather local documents are sent to the remote database.
  */
 function syncFn(db, cloudantCreds, options){
-	if (!env.test && cloudantCreds.endpoint && cloudantCreds.password) {
+	if (cloudantCreds.endpoint && cloudantCreds.password && cloudantCreds.apikey) {
 		logger.debug(`${TAG}: Starting sync of database [${db._db_name}] with remote Cloudant db ${cloudantCreds.dbname} @ ${cloudantCreds.endpoint}.`);
 
 		db.sync(`https://${cloudantCreds.apikey}:${cloudantCreds.password}@${cloudantCreds.endpoint}/${cloudantCreds.dbname}`,
@@ -257,14 +207,6 @@ function syncFn(db, cloudantCreds, options){
 	}
 };
 
-/**
- * @deprecated Keeping this here for compability with the previous implementation, must remove once dependencies are updated.
- */
-DBManager.prototype.open = function() {
-	return new Promise((resolve, reject) => {
-		resolve(this.db);
-	});
-};
 
 /**
  * Retrieve a document from the database.
@@ -380,122 +322,5 @@ DBManager.prototype.info = function(opts){
 	});
 };
 
-
-/**
- * @deprecated Use nlcconfig.getAllClasses.
- */
-DBManager.prototype.getAllClasses = function(approvedAfterDate) {
-	// assumption that the database can be held in memory
-	// note classifier will break if this is not the case
-	// return an array of [text, className]
-	return new Promise((resolve, reject) => {
-		let result = [];
-		if (this.db){
-			// get all of the class types
-			return this.db.query(classesView, {
-				include_docs: true
-			}).then((res) => {
-				if (approvedAfterDate && typeof approvedAfterDate === 'number'){
-					approvedAfterDate = new Date(approvedAfterDate);
-				}
-
-				for (let row of res.rows){
-					// Filter records without an approvedDate or approved before the given date.
-					if (approvedAfterDate) {
-						if (row.doc.approved){
-							let approvedDate = row.doc.approved_timestamp || row.doc.approved;
-							if (new Date(parseInt(approvedDate, 10)) < approvedAfterDate){
-								continue;
-							}
-						}
-						else {
-							continue;
-						}
-					}
-
-					let className = row.key;
-					// allow short hand assignment for classifications
-					let text = row.doc.text || row.doc.classification.text;
-
-					result.push([
-						text, className
-					]);
-				}
-				return resolve(result);
-			}).catch(function(err) {
-				reject(err);
-			});
-		}
-		else {
-			reject('Database needs to be open before calling getLocalClasses');
-		}
-	});
-};
-
-/**
- * @deprecated Use nlcconfig.getClassEmitTarget.
- */
-DBManager.prototype.getClassEmitTarget = function(className) {
-	return this.db.query(targetView, {
-		key: className
-	}).then((result) => {
-		if (result.rows.length > 0){
-			let resp = {
-				class: result.rows[0].id,
-				description: result.rows[0].value.length >= 3 ? result.rows[0].value[2] : result.rows[0].id,
-				target: result.rows[0].value[0],
-				parameters: result.rows[0].value[1]
-			};
-
-			// loop through and resolve $ref if defined
-			if (resp.parameters){
-				let ps = [];
-				for (let p of resp.parameters){
-					ps.push(
-						new Promise((resolve, reject) => {
-							if (p.values && !Array.isArray(p.values)){
-								if (p.values.$ref){
-									let ref = p.values.$ref;
-									return this.db.get(ref).then((doc) => {
-										if (doc.values){
-											p.values = doc.values;
-											resolve(p);
-										}
-										else {
-											resolve(p);
-										}
-									});
-								}
-								else {
-									// skip over, return object
-									resolve(p);
-								}
-							}
-							else {
-								resolve(p);
-							}
-						})
-					);
-				}
-				return Promise.all(ps).then((params) => {
-					resp.parameters = params;
-					return resp;
-				}).catch(() => {
-					// can't execute this emit target, so return null
-					logger.error(`${TAG} Couldn't resolve parameters for class ${className}. This is likely caused by incorrect data in the database. Was trying to resolve initial params`, resp.parameters);
-					return null;
-				});
-			}
-			else {
-				// no parameters
-				return resp;
-			}
-		}
-		else {
-			logger.error(`${TAG} Class ${className} doesn't exist in the database. This is likely an indication of (1) the Watson NLC needs to be re-trained with the current data, or (2) a problem initializing or synchronizing the database.`);
-			return null;
-		}
-	});
-};
 
 module.exports = DBManager;
