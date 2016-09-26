@@ -22,7 +22,7 @@ describe('Test the RRManager library', function(){
 	const trainingRanker = 'test-ranker3';
 	const unavailableRanker = 'test-ranker4';
 
-	let init = function(rankerName, training_data){
+	let initRRManager = function(rankerName, training_data){
 		let options = {
 			url: env.rr_url,
 			username: env.rr_username,
@@ -48,7 +48,7 @@ describe('Test the RRManager library', function(){
 	});
 
 	beforeEach(function(){
-		watson_rr = init('test-ranker');
+		watson_rr = initRRManager('test-ranker');
 	});
 
 	describe('Test the solr cluster methods', function(){
@@ -196,7 +196,7 @@ describe('Test the RRManager library', function(){
 		});
 
 		it('should successfully get status of most recent training ranker', function(done){
-			init(trainingRanker).rankerStatus().then((result) => {
+			initRRManager(trainingRanker).rankerStatus().then((result) => {
 				expect(result.status).to.be.equal('Training');
 				done();
 			});
@@ -229,7 +229,7 @@ describe('Test the RRManager library', function(){
 		});
 
 		it('Should start training ranker with training_data from db', function(done){
-			let temp_rr_instance = init('non-exist-ranker');
+			let temp_rr_instance = initRRManager('non-exist-ranker');
 			temp_rr_instance.setupIfNeeded().then((result) => {
 				return temp_rr_instance.trainIfNeeded();
 			}).then((result) => {
@@ -239,7 +239,7 @@ describe('Test the RRManager library', function(){
 		});
 
 		it('Should start training ranker with provided training_data', function(done){
-			init('non-exist-ranker', fs.createReadStream(path.resolve(__dirname, 'resources', 'training.data.csv'))).trainIfNeeded().then((result) => {
+			initRRManager('non-exist-ranker', fs.createReadStream(path.resolve(__dirname, 'resources', 'training.data.csv'))).trainIfNeeded().then((result) => {
 				expect(result.status).to.be.equal('Training');
 				done();
 			});
@@ -265,14 +265,14 @@ describe('Test the RRManager library', function(){
 		});
 
 		it('should fail to get status of ranker', function(done){
-			init(nonExistentRanker).rankerStatus().catch(function(error){
+			initRRManager(nonExistentRanker).rankerStatus().catch(function(error){
 				expect(error).to.be.equal(`No rankers found under [${nonExistentRanker}]`);
 				done();
 			});
 		});
 
 		it('should fail to get an available/training ranker', function(done){
-			init(unavailableRanker).rankerStatus().catch(function(error){
+			initRRManager(unavailableRanker).rankerStatus().catch(function(error){
 				expect(error).to.be.equal(`No rankers available under [${unavailableRanker}]`);
 				done();
 			});

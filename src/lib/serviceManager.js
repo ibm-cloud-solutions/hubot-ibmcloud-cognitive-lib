@@ -33,13 +33,11 @@ function serviceManager(options) {
 		this.config = nlcConfig;
 	}
 	else if (options.serviceName === 'rr'){
+		this.opts.resultsPerQuery = options.resultsPerQuery || 10;
 		this.opts.serviceType = 'ranker';
 		this.db = new DBManager({localDbName: 'rr', remoteDbName: env.db_rr_remote});
 		this.rr = watson.retrieve_and_rank(this.opts);
 		this.config = rrConfig;
-	}
-	else {
-		// TODO: Error if not one of these
 	}
 	this.instanceName = options.classifierName || options.rankerName;
 	this.opts.maxInstances = options.maxRankers || options.maxClassifiers;
@@ -500,7 +498,8 @@ serviceManager.prototype._processRequest = function(text, instance){
 			let query = qs.stringify({
 				q: text,
 				ranker_id: instance.ranker_id,
-				fl: 'id,url'
+				fl: 'id,url',
+				rows: this.opts.resultsPerQuery
 			});
 			this.solrClient.get('fcselect', query, (err, response) => {
 				if (err) {
@@ -628,7 +627,7 @@ serviceManager.prototype._getFromConfig = function(){
 serviceManager.prototype._parseTrainingData = function(csvInput){
 	return new Promise((resolve, reject) => {
 		if (this.rr){
-			let csv_text = 'question_id,f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,r1,r2,s,ground_truth\n';
+			let csv_text = '';
 			let fcselect_calls = [];
 			if (!this.solrClient){
 				let params = {
@@ -646,8 +645,11 @@ serviceManager.prototype._parseTrainingData = function(csvInput){
 							gt: row[1],
 							returnRSInput: 'true',
 							rows: 10,
-							fl: 'id'
+							fl: 'id,url'
 						});
+					if (i === 0){
+						query += '&generateHeader=true';
+					}
 					this.solrClient.get('fcselect', query, (err, response) => {
 						if (err) {
 							reject(err);
@@ -657,7 +659,12 @@ serviceManager.prototype._parseTrainingData = function(csvInput){
 								reject(response.statusMessage);
 							}
 							else {
-								csv_text += response.RSInput;
+								if (i === 0){
+									csv_text = response.RSInput + csv_text;
+								}
+								else {
+									csv_text += response.RSInput;
+								}
 								resolve(response.RSInput);
 							}
 						}
