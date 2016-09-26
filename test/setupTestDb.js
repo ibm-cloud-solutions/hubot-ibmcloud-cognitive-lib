@@ -6,8 +6,8 @@
  */
 'use strict';
 const DBManager = require('../src/lib/dbManager');
-const nlc_db = new DBManager({localDbName: 'nlc', remoteDbName: 'nlc'});
-const rr_db = new DBManager({localDbName: 'rr', remoteDbName: 'rr'});
+const nlc_db = new DBManager({localDbName: 'nlc'});
+const rr_db = new DBManager({localDbName: 'rr'});
 
 const learned = require('./resources/training.local.learned.json');
 const unclassified = require('./resources/training.local.unclassified.json');
