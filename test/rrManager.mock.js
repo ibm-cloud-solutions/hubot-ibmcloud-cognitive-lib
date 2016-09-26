@@ -68,11 +68,11 @@ module.exports = {
 		.reply(200, mockRankerStatusUnavailableResults);
 
 		// Mock routes to get training data for ranker training
-		rrScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=mySelection&gt=undefined%2Cundefined&returnRSInput=true&rows=10&fl=id&wt=json')
+		rrScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=mySelection&gt=undefined%2Cundefined&returnRSInput=true&rows=10&fl=id%2Curl&wt=json')
 		.reply(200, mockRSInputs);
-		rrScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=approved&gt=should%20see%20this&returnRSInput=true&rows=10&fl=id&wt=json')
+		rrScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=approved&gt=should%20see%20this&returnRSInput=true&rows=10&fl=id%2Curl&generateHeader=true&wt=json')
 		.reply(200, mockRSInputs);
-		rrScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=test.class&gt=test%20data&returnRSInput=true&rows=10&fl=id&wt=json')
+		rrScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=test.class&gt=test%20data&returnRSInput=true&rows=10&fl=id%2Curl&wt=json')
 		.reply(200, mockRSInputs);
 
 		// Mock route for ranker error status.
@@ -89,7 +89,7 @@ module.exports = {
 		});
 
 		// Mock route to get ranking data.
-		rrScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=using%20the%20cf%20command%20line&ranker_id=cd02b5x110-rr-5110&fl=id%2Curl&wt=json')
+		rrScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=using%20the%20cf%20command%20line&ranker_id=cd02b5x110-rr-5110&fl=id%2Curl&rows=10&wt=json')
 		.reply(200, mockRankResults);
 
 		// Mock route to create a new ranker.
@@ -113,11 +113,11 @@ module.exports = {
 		.reply(400, {});
 
 		// Mock routes to get training data for ranker training
-		rrErrorScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=mySelection&gt=undefined%2Cundefined&returnRSInput=true&rows=10&fl=id&wt=json')
+		rrErrorScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=mySelection&gt=undefined%2Cundefined&returnRSInput=true&rows=10&fl=id%2Curl&wt=json')
 		.reply(200, mockRSInputs);
-		rrErrorScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=approved&gt=should%20see%20this&returnRSInput=true&rows=10&fl=id&wt=json')
+		rrErrorScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=approved&gt=should%20see%20this&returnRSInput=true&rows=10&fl=id%2Curl&generateHeader=true&wt=json')
 		.reply(200, mockRSInputs);
-		rrErrorScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=test.class&gt=test%20data&returnRSInput=true&rows=10&fl=id&wt=json')
+		rrErrorScope.get('/v1/solr_clusters/sc8675309-s117/solr/test-collection/fcselect?q=test.class&gt=test%20data&returnRSInput=true&rows=10&fl=id%2Curl&wt=json')
 		.reply(200, mockRSInputs);
 
 		// Mock route to list all clusters.

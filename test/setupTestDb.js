@@ -92,6 +92,16 @@ const open = new Promise((resolve, reject) => {
 			text: 'should see this'
 		});
 	}).then(() => {
+		// approved
+		return rr_db.put({
+			_id: 'approved',
+			selectedClass: 'approved',
+			approved: true,
+			approved_timestamp: Date.now(),
+			approved_method: 'manual',
+			text: 'should see this'
+		});
+	}).then(() => {
 		return rr_db.put({
 			_id: 'cd02b5x110-rr-0000',
 			type: 'ranker_data',

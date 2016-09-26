@@ -26,7 +26,7 @@ const fs = require('fs');
  *        options.rankerName = Watson R&R Ranker name (OPTIONAL, defaults to 'default-ranker')
  *        options.maxRankers = Maximum number of rankers with name 'rankerName', will delete rankers exceding this num (OPTIONAL, defaults to 1)
  *        options.training_data = ReadStream, typically created from a CSV file.  (OPTIONAL, if omitted training data will come from rrDb)
- *				options.documents = ReadStream, typically created from a JSON file.  (OPTIONAL, if omitted documents will come from rrDb)
+ *				options.documents = ReadStream, typically created from a JSON file.  (REQUIRED)
  *				options.config = ReadStream, typically created from a zip file.  (OPTIONAL, if omitted config will come from rrDb)
  *        options.saveTrainingData = Saves data used to train the ranker (OPTIONAL, defaults to true)
  * @constructor
@@ -77,7 +77,39 @@ RRManager.prototype.setupIfNeeded = function(){
 };
 
 /**
-* Deletes the current cluster and all rankers
+* Deletes all clusters with names other than the current cluster name (older versions)
+*/
+RRManager.prototype.deleteOldClusters = function(){
+	return new Promise((resolve, reject) => {
+		this.rr.listClusters({}, (err, response) => {
+			if (err) {
+				reject('Error getting available clusters.' + JSON.stringify(err, null, 2));
+			}
+			else {
+				let filteredClusters = response.clusters.filter((cluster) => {
+					return cluster.cluster_name !== this.opts.clusterName;
+				});
+				if (filteredClusters.length < 1){
+					resolve(); // no old clusters to delete
+				}
+				else {
+					let deletePromises = [];
+					filteredClusters.map((cluster) => {
+						deletePromises.push(this._deleteCluster({cluster_id: cluster.solr_cluster_id}));
+					});
+					Promise.all(deletePromises).then((result) => {
+						resolve();
+					}).catch((error) => {
+						reject('Error deleting clusters: ' + JSON.stringify(error));
+					});
+				}
+			}
+		});
+	});
+};
+
+/**
+* Deletes the current cluster
 */
 RRManager.prototype.deleteCluster = function(){
 	return new Promise((resolve, reject) => {
@@ -139,12 +171,6 @@ RRManager.prototype._setupCluster = function(){
 				}
 				else {
 					reject('failed to upload training documents: no documents found.');
-					// TODO: Implement way to train with documents stored in db by crawler?
-					// rrConfig.getDocuments().then((jsonInput) => {
-					// 	return this._uploadDocuments(jsonInput);
-					// }).catch((error) => {
-					// 	reject(error);
-					// });
 				}
 			}).then((result) => {
 				resolve(this.cluster_cache);
@@ -509,6 +535,15 @@ RRManager.prototype.currentRanker = function(){
  */
 RRManager.prototype.rank = function(text){
 	return this.serviceManager.process(text, this.cluster_cache);
+};
+
+/**
+* Deletes the current cluster and all rankers
+* @param  String	text	Ranker id for ranker to be deleted .
+* @return JSON      		Empty json on success, error message on failure.
+*/
+RRManager.prototype.deleteRanker = function(ranker_id){
+	return this.serviceManager._deleteInstance(ranker_id);
 };
 
 /**

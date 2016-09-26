@@ -21,7 +21,7 @@ describe('Test the NLCManager library', function(){
 	let trainingClassifier = 'test-classifier3';
 	let unavailableClassifier = 'test-classifier4';
 
-	let init = function(classifierName, training_data) {
+	let initNLCManager = function(classifierName, training_data) {
 		let options = {
 			url: env.nlc_url,
 			username: env.nlc_username,
@@ -45,7 +45,7 @@ describe('Test the NLCManager library', function(){
 	});
 
 	beforeEach(function(){
-		watson_nlc = init(env.nlc_classifier);
+		watson_nlc = initNLCManager(env.nlc_classifier);
 	});
 
 	it('should classify statement as weather', function(done){
@@ -74,7 +74,7 @@ describe('Test the NLCManager library', function(){
 	});
 
 	it('should successfully get status of most recent training classifier', function(done){
-		init(trainingClassifier).classifierStatus().then(function(result){
+		initNLCManager(trainingClassifier).classifierStatus().then(function(result){
 			expect(result.status).to.be.equal('Training');
 			done();
 		});
@@ -107,14 +107,14 @@ describe('Test the NLCManager library', function(){
 		});
 
 		it('should fail to get status of classifier', function(done){
-			init(nonExistantClassifier).classifierStatus().catch(function(error){
+			initNLCManager(nonExistantClassifier).classifierStatus().catch(function(error){
 				expect(error).to.be.equal(`No classifiers found under [${nonExistantClassifier}]`);
 				done();
 			});
 		});
 
 		it('should fail to get an available/training classifier', function(done){
-			init(unavailableClassifier).classifierStatus().catch(function(error){
+			initNLCManager(unavailableClassifier).classifierStatus().catch(function(error){
 				expect(error).to.be.equal(`No classifiers available under [${unavailableClassifier}]`);
 				done();
 			});
@@ -137,7 +137,7 @@ describe('Test the NLCManager library', function(){
 	});
 
 	it('Should start training classifier with provided training_data', function(done){
-		init('non-exist-classifier', fs.createReadStream(path.resolve(__dirname, 'resources', 'training.data.csv'))).trainIfNeeded().then(function(result){
+		initNLCManager('non-exist-classifier', fs.createReadStream(path.resolve(__dirname, 'resources', 'training.data.csv'))).trainIfNeeded().then(function(result){
 			expect(result.status).to.be.equal('Training');
 			done();
 		});
@@ -145,7 +145,7 @@ describe('Test the NLCManager library', function(){
 
 	it('Should start training classifier with dynamic training_data', function(done){
 		let counter = 0;
-		init('non-exist-classifier', function() {
+		initNLCManager('non-exist-classifier', function() {
 			counter++;
 			return 'data1,class1\ndata2,class2';
 		}).trainIfNeeded().then(function(result){
