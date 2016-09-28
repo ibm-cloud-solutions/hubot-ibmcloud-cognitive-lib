@@ -42,6 +42,7 @@ function RRManager(options) {
 	this.opts.saveTrainingData = options.saveTrainingData === false ? options.saveTrainingData : true;
 	this.opts.version = options.version || 'v1';
 	this.opts.serviceName = 'rr';
+	this.opts.api_key = new Buffer(options.username + ':' + options.password).toString('base64');
 	this.rr = watson.retrieve_and_rank(this.opts);
 	this.serviceManager = new ServiceManager(this.opts);
 }

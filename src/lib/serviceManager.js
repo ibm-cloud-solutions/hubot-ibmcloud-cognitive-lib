@@ -36,6 +36,7 @@ function serviceManager(options) {
 		this.opts.resultsPerQuery = options.resultsPerQuery || 10;
 		this.opts.serviceType = 'ranker';
 		this.db = new DBManager({localDbName: 'rr', remoteDbName: env.db_rr_remote});
+		this.opts.api_key = options.api_key;
 		this.rr = watson.retrieve_and_rank(this.opts);
 		this.config = rrConfig;
 	}
