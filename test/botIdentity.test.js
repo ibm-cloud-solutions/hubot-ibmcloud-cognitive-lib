@@ -19,7 +19,7 @@ describe('Test repication uses correct bot identity', function() {
 		nock.disableNetConnect();
 
 		nock(env.slackApi).persist().get('/auth.test?token=abc').reply(200, {user: 'mimiron'});
-		nock('https://' + env.syncToMasterEndpoint).persist().get(/\/generate\?botid=.*/).reply(200, function(uri){
+		nock('https://' + env.cloudantEndpoint).persist().get(/\/generate\?botid=.*/).reply(200, function(uri){
 			return {dbname: uri.substring(uri.indexOf('=') + 1), apikey: 'abc', password: '123'};
 		});
 	});
@@ -68,78 +68,6 @@ describe('Test repication uses correct bot identity', function() {
 		}).then((botInfo) => {
 			expect(botInfo.botName).to.be.eql('mimiron');
 			expect(botInfo.localDbName).to.be.eql('testdb2');
-			done();
-		}).catch((error) => {
-			done(error);
-		});
-	});
-
-	it('Should use HUBOT_NAME to replicate to master', function(done){
-		env.botName = 'test Bot';
-		let testDb3 = new DBManager({localDbName: 'testdb3'});
-
-		sprinkles.eventually(function(){
-			return testDb3.get('botInfo');
-		}).then((botInfo) => {
-			expect(botInfo.botName).to.be.eql('test Bot');
-			expect(botInfo.localDbName).to.be.eql('testdb3');
-			expect(botInfo.masterCloudantCreds.dbname).to.be.eql('testbot_testdb3_zho6');
-			done();
-		}).catch((error) => {
-			done(error);
-		});
-	});
-
-	it('Should use HUBOT_BLUEMIX_USER to replicate to master', function(done){
-		env.slackToken = undefined;
-		env.botName = undefined;
-		env.bluemixUser = 'bluemixUser@us.ibm.com';
-
-		let testDb4 = new DBManager({localDbName: 'testdb4'});
-
-		sprinkles.eventually(function(){
-			return testDb4.get('botInfo');
-		}).then((botInfo) => {
-			expect(botInfo.botName).to.be.eql('bluemixUser');
-			expect(botInfo.localDbName).to.be.eql('testdb4');
-			expect(botInfo.masterCloudantCreds.dbname).to.be.eql('bluemixuser_testdb4_6n69');
-			done();
-		}).catch((error) => {
-			done(error);
-		});
-	});
-
-	it('Should use default bot name "hubot" to replicate to master', function(done){
-		env.botName = undefined;
-		env.bluemixUser = undefined;
-
-		let testDb5 = new DBManager({localDbName: 'testdb5'});
-
-		sprinkles.eventually(function(){
-			return testDb5.get('botInfo');
-		}).then((botInfo) => {
-			expect(botInfo.botName).to.be.eql('hubot');
-			expect(botInfo.localDbName).to.be.eql('testdb5');
-			expect(botInfo.masterCloudantCreds.dbname).to.be.eql('hubot_testdb5_bmni');
-			done();
-		}).catch((error) => {
-			done(error);
-		});
-	});
-
-	it('Should use default bot name "hubot" if there\'s an error connecting to the Slack API', function(done){
-		env.botName = undefined;
-		env.slackToken = 'abc';
-		env.slackApi = 'badURL';
-
-		let testDb6 = new DBManager({localDbName: 'testdb6'});
-
-		sprinkles.eventually(function(){
-			return testDb6.get('botInfo');
-		}).then((botInfo) => {
-			expect(botInfo.botName).to.be.eql('hubot');
-			expect(botInfo.localDbName).to.be.eql('testdb6');
-			expect(botInfo.masterCloudantCreds.dbname).to.be.eql('hubot_testdb6_7m3o');
 			done();
 		}).catch((error) => {
 			done(error);

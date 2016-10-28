@@ -10,7 +10,6 @@ const expect = require('chai').expect;
 const assert = require('chai').assert;
 const testDbs = require('./setupTestDb');
 
-const pouch = require('../src/lib/PouchDB');
 const nock = require('nock');
 const DBManager = require('../src/lib/dbManager');
 const path = require('path');
@@ -125,26 +124,6 @@ describe('Testing of database.', function() {
 			db.get('botInfo').then((botInfo) => {
 				expect(botInfo.botName).to.be.eql('mimiron');
 				expect(botInfo.localDbName).to.be.eql('localtest');
-			});
-		});
-
-		it('Should use saved Master Cloudant credentials when available', function(done){
-			nock('https://my_test_endpoint').get(function(uri) {
-				if (uri.indexOf('my_test_database') > -1) {
-					done();
-				}
-			}).reply(200, '');
-
-			pouch.open('cachetest').put({
-				_id: 'botInfo',
-				localDbName: 'cachetest',
-				masterCloudantCreds: {
-					dbname: 'my_test_database',
-					endpoint: 'my_test_endpoint',
-					apikey: 'abc',
-					password: '123' }
-			}).then(() => {
-				return new DBManager({localDbName: 'cachetest', remoteDbName: 'remotetest'});
 			});
 		});
 

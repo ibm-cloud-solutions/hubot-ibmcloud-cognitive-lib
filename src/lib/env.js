@@ -27,8 +27,6 @@ let settings = {
 	cloudantKey: process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_USERNAME || process.env.HUBOT_CLOUDANT_KEY,
 	cloudantPassword: process.env.VCAP_SERVICES_CLOUDANTNOSQLDB_0_CREDENTIALS_PASSWORD || process.env.HUBOT_CLOUDANT_PASSWORD,
 	syncInterval: process.env.SYNC_INTERVAL || '1800000', // default 30 minutes
-	syncToMaster: process.env.HUBOT_COGNITIVE_FEEDBACK_ENABLED || false,
-	syncToMasterEndpoint: process.env.HUBOT_COGNITIVE_FEEDBACK_ENDPOINT || 'cognitive-keys.ng.bluemix.net',
 
 	// Local PouchDB settings
 	dbPath: process.env.HUBOT_DB_PATH || './',
