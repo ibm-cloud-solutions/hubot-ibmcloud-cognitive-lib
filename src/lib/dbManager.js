@@ -11,7 +11,6 @@ const logger = require('./logger');
 const env = require('./env');
 const PouchDB = require('./PouchDB');
 const botIdentity = require('./botIdentity');
-const request = require('request');
 
 const pjson = require(path.resolve(process.cwd(), 'package.json'));
 const classesDesignDoc = '_design/classes';
@@ -51,19 +50,6 @@ function DBManager(options){
 			logger.debug(`${TAG}: Replication to user's Cloudant disabled for database [${this.localDbName}].`);
 		}
 
-		// Sync with Master Cloudant
-		if (env.truthy(env.syncToMaster)){
-			logger.info(`${TAG}: Anonymous reporting of cognitive feedback data is enabled for database [${this.localDbName}]. To disable set HUBOT_COGNITIVE_FEEDBACK_ENABLED to false.`);
-			getMasterCreds(this.db, this.localDbName).then((masterCreds) => {
-				syncFn(this.db, masterCreds, {pull: false, push: true});
-			}).catch((error) => {
-				logger.error(`${TAG}: Error retrieving master cloudant credentials for database [${this.localDbName}]. Unable to start replication.`, error);
-			});
-		}
-		else {
-			logger.warn(`${TAG}: Cognitive feedback reporting is disabled for database [${this.localDbName}]. Anonymous reporting of NLC results helps with improving the training data of your bot. To enable set HUBOT_COGNITIVE_FEEDBACK_ENABLED to true.`);
-		}
-
 	}).catch((error) => {
 		logger.error(`${TAG}: Error initializing database [${this.localDbName}]. Cause:`, error);
 	});
@@ -92,6 +78,11 @@ function initializeDB(db){
 			};
 
 			db.put(ddoc).then(() => {
+				return botIdentity.getBotName();
+			}).then((botName) => {
+				// Save metadata document botInfo to identify this database as a cognitive db.
+				return db.put({_id: 'botInfo', botName: botName, localDbName: db._db_name});
+			}).then(() => {
 				resolve();
 			}).catch((err) => {
 				logger.error(`${TAG}: Error initializing database [${db._db_name}].`, err);
@@ -101,55 +92,6 @@ function initializeDB(db){
 	});
 }
 
-
-/**
- * Obtains credentials to the Master Cloudant database for sync.
- * @param  {object} db          PouchDB database
- * @param  {string} localDbName name of the local Pouch Database.
- * @return {Promise}            Resolves to object with Master Cloudant credentials
- */
-function getMasterCreds(db, localDbName){
-	return new Promise((resolve, reject) => {
-		db.get('botInfo').then((botInfo) => {
-			logger.debug(`${TAG}: Replicating [${localDbName}] to master using saved credentials.`);
-			let cloudantCreds = botInfo.masterCloudantCreds;
-			resolve(cloudantCreds);
-		}).catch((error) => {
-			if (error.status === 404){
-				botIdentity.getBotName().then((botName) => {
-					logger.debug(`${TAG}: Using bot name [${botName}]`);
-					let botUID = botIdentity.getBotUID();
-					let remoteDbName = (botName + '_' + localDbName + '_' + botUID).replace(' ', '').toLowerCase();
-
-					request('https://' + env.syncToMasterEndpoint + '/generate?botid=' + remoteDbName, (error, response, body) => {
-						if (error) {
-							logger.error(`${TAG}: Error getting master Cloudant keys to replicate [${localDbName}].`, error);
-							reject(error);
-						}
-						else {
-							logger.debug(`${TAG}: Got Master Cloudant credentials to replicate [${localDbName}].`);
-							let cloudantCreds = JSON.parse(body);
-
-							db.put({_id: 'botInfo', botName: botName, localDbName: localDbName, botId: botUID, masterCloudantCreds: cloudantCreds}).then(() => {
-								logger.debug(`${TAG}: Saved master Cloudant keys for local db [${localDbName}].`);
-							}).catch((error) => {
-								logger.error(`${TAG}: Error saving botInfo document in [${localDbName}]`, error);
-							});
-
-							resolve(cloudantCreds);
-						}
-					});
-				}).catch((error) => {
-					logger.error(`${TAG}: Error getting bot name.`, error);
-				});
-			}
-			else {
-				logger.error(`${TAG} Unexpected error retrieving botInfo from [${localDbName}]`, error);
-				reject(error);
-			}
-		});
-	});
-}
 
 /**
  * Synchronizes the training data for cognitive services.
