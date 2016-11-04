@@ -4,9 +4,10 @@ node_js:
 before_install:
   - npm i -g npm@2
 install:
-  - npm install
+  - npm i
 script:
   - npm run lint
   - npm run coverage
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then npm i -g pumpthebreaks && pump; fi
 notifications:
   webhooks: 'http://cloud-solutions-travis.mybluemix.net/notifications'
