@@ -10,7 +10,7 @@ const TAG = path.basename(__filename);
 const logger = require('./logger');
 const env = require('./env');
 const DBManager = require('./dbManager');
-const nlcDb = new DBManager({localDbName: 'nlc', remoteDbName: env.cloudantDb});
+const nlcDb = new DBManager({localDbName: 'nlc', remoteDbName: env.db_nlc_remote });
 const classesView = 'classes/byClass';
 const targetView = 'classes/byTarget';
 
